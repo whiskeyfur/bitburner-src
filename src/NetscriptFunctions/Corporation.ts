@@ -95,8 +95,8 @@ export function NetscriptCorporation(): InternalAPI<NSCorporation> {
   }
 
   function getResearchCost(division: Division, researchName: CorpResearchName): number {
-    const researchTree = IndustryResearchTrees[division.type];
-    if (researchTree === undefined) throw new Error(`No research tree for industry '${division.type}'`);
+    const researchTree = IndustryResearchTrees[division.industry];
+    if (researchTree === undefined) throw new Error(`No research tree for industry '${division.industry}'`);
     const allResearch = researchTree.getAllNodes();
     if (!allResearch.includes(researchName)) throw new Error(`No research named '${researchName}'`);
     const research = ResearchMap[researchName];
@@ -160,7 +160,7 @@ export function NetscriptCorporation(): InternalAPI<NSCorporation> {
 
     return {
       name: division.name,
-      type: division.type,
+      industry: division.industry,
       awareness: division.awareness,
       popularity: division.popularity,
       productionMult: division.productionMult,

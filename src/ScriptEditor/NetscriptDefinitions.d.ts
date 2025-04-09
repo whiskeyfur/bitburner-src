@@ -10043,7 +10043,7 @@ interface Division {
   /** Name of the division */
   name: string;
   /** Type of division, like Agriculture */
-  type: CorpIndustryName;
+  industry: CorpIndustryName;
   /** Awareness of the division */
   awareness: number;
   /** Popularity of the division */
