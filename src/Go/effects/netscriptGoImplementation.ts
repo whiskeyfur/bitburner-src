@@ -19,7 +19,7 @@ import {
   simpleBoardFromBoard,
   simpleBoardFromBoardString,
 } from "../boardAnalysis/boardAnalysis";
-import { endGoGame, getOpponentStats, getScore, resetWinstreak } from "../boardAnalysis/scoring";
+import { forceEndGoGame, getOpponentStats, getScore, resetWinstreak } from "../boardAnalysis/scoring";
 import { WHRNG } from "../../Casino/RNG";
 import { getRecordKeys } from "../../Types/Record";
 import { CalculateEffect, getEffectTypeForFaction } from "./effect";
@@ -29,6 +29,7 @@ import { newOpponentStats } from "../Constants";
  * Check the move based on the current settings
  */
 export function validateMove(error: (s: string) => never, x: number, y: number, methodName = "", settings = {}): void {
+  Go.moveOrCheatViaApi = true;
   const check = {
     emptyNode: true,
     requireNonEmptyNode: false,
@@ -288,7 +289,7 @@ export function getHistory(): string[][] {
 /**
  * Gets the status of the current game.
  * Shows the current player, current score, and the previous move coordinates.
- * Previous move coordinates will be [-1, -1] for a pass, or if there are no prior moves.
+ * Previous move will be null for a pass, or if there are no prior moves.
  *
  * Also provides the white player's komi (bonus starting score), and the amount of bonus cycles from offline time remaining
  */
@@ -378,7 +379,7 @@ export function getStats() {
       losses: details.losses,
       winStreak: details.winStreak,
       highestWinStreak: details.highestWinStreak,
-      favor: details.favor,
+      rep: details.rep,
       bonusPercent: effectPercent,
       bonusDescription: effectDescription,
     };
@@ -425,6 +426,7 @@ export function validateBoardState(
   error: (s: string) => never,
   _boardState?: unknown,
   _priorBoardState?: unknown,
+  playAsWhite = false,
 ): BoardState | undefined {
   const simpleBoard = getSimpleBoardFromUnknown(error, _boardState);
   const priorSimpleBoard = getSimpleBoardFromUnknown(error, _priorBoardState);
@@ -434,7 +436,12 @@ export function validateBoardState(
   }
 
   try {
-    return getNewBoardStateFromSimpleBoard(simpleBoard, priorSimpleBoard);
+    return getNewBoardStateFromSimpleBoard(
+      simpleBoard,
+      priorSimpleBoard,
+      undefined,
+      playAsWhite ? GoColor.black : GoColor.white,
+    );
   } catch (e) {
     error(boardValidity.failedToCreateBoard);
   }
@@ -502,10 +509,11 @@ export function determineCheatSuccess(
   if ((successRngOverride ?? rng.random()) <= cheatSuccessChance(state.cheatCount, playAsWhite)) {
     callback();
   }
-  // If there have been prior cheat attempts, and the cheat fails, there is a 10% chance of instantly losing
+  // If there have been prior cheat attempts, and the cheat fails, there is a 10% chance of instantly ending the game
   else if (priorCheatCount && (ejectRngOverride ?? rng.random()) < 0.1 && state.ai !== GoOpponent.none) {
     logger(`Cheat failed! You have been ejected from the subnet.`);
-    endGoGame(state);
+    forceEndGoGame(state);
+    Player.giveAchievement("IPVGO_ANTICHEAT");
     return handleNextTurn(state, true);
   } else {
     // If the cheat fails, your turn is skipped
