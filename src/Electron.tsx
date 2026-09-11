@@ -5,11 +5,20 @@ import { Terminal } from "./Terminal";
 import { SnackbarEvents } from "./ui/React/Snackbar";
 import { ToastVariant } from "@enums";
 import { IReturnStatus, SaveData } from "./types";
-import { ImportPlayerData, ElectronGameData, saveObject } from "./SaveObject";
+import {
+  ImportPlayerData,
+  ElectronGameData,
+  saveGame,
+  getSaveFileName,
+  getSaveData,
+  getImportDataFromSaveData,
+  exportGame,
+} from "./SaveObject";
 import { exportScripts } from "./Terminal/commands/download";
 import { CONSTANTS } from "./Constants";
 import { commitHash } from "./utils/helpers/commitHash";
 import { handleGetSaveDataInfoError } from "./utils/ErrorHandler";
+import { assertSaveData } from "./utils/TypeAssertion";
 
 interface IReturnWebStatus extends IReturnStatus {
   data?: Record<string, unknown>;
@@ -76,9 +85,9 @@ function initAppNotifier(): void {
 
 function initSaveFunctions(): void {
   const funcs = {
-    triggerSave: (): Promise<void> => saveObject.saveGame(true),
+    triggerSave: (): Promise<void> => saveGame(true),
     triggerGameExport: (): void => {
-      saveObject.exportGame().catch((error) => {
+      exportGame().catch((error) => {
         console.error(error);
         SnackbarEvents.emit("Could not export game.", ToastVariant.ERROR, 2000);
       });
@@ -86,13 +95,13 @@ function initSaveFunctions(): void {
     triggerScriptsExport: (): void => exportScripts("*", Player.getHomeComputer()),
     getSaveData: async (): Promise<{ save: SaveData; fileName: string }> => {
       return {
-        save: await saveObject.getSaveData(),
-        fileName: saveObject.getSaveFileName(),
+        save: await getSaveData(),
+        fileName: getSaveFileName(),
       };
     },
     getSaveInfo: async (saveData: SaveData): Promise<ImportPlayerData | undefined> => {
       try {
-        const importData = await saveObject.getImportDataFromSaveData(saveData);
+        const importData = await getImportDataFromSaveData(saveData);
         return importData.playerData;
       } catch (error) {
         console.error(error);
@@ -122,9 +131,7 @@ function initElectronBridge(): void {
       });
   });
   bridge.receive("get-save-info-request", (saveData: unknown) => {
-    if (typeof saveData !== "string" && !(saveData instanceof Uint8Array)) {
-      throw new Error("Error while trying to get save info");
-    }
+    assertSaveData(saveData);
     window.appSaveFns
       .getSaveInfo(saveData)
       .then((saveInfo) => {

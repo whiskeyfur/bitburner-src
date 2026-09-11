@@ -9,16 +9,47 @@ Parses the flags schema on the already inputted flags
 **Signature:**
 
 ```typescript
-flags(schema: [string, string | number | boolean | string[]][]): { [key: string]: ScriptArg | string[] };
+flags(schema: [string, any][]): {
+    [key: string]: any;
+    _: ScriptArg[];
+  };
 ```
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  schema | \[string, string \| number \| boolean \| string\[\]\]\[\] |  |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+schema
+
+
+</td><td>
+
+\[string, any\]\[\]
+
+
+</td><td>
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
-{ \[key: string\]: [ScriptArg](./bitburner.scriptarg.md) \| string\[\] }
+{ \[key: string\]: any; \_: [ScriptArg](./bitburner.scriptarg.md)<!-- -->\[\]; }
 

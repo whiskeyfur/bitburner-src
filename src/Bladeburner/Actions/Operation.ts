@@ -6,7 +6,8 @@ import type { ActionIdFor, Availability, SuccessChanceParams } from "../Types";
 import { BladeburnerActionType, BladeburnerMultName, BladeburnerOperationName } from "@enums";
 import { BladeburnerConstants } from "../data/Constants";
 import { ActionClass } from "./Action";
-import { constructorsForReviver, Generic_fromJSON, IReviverValue } from "../../utils/JSONReviver";
+import type { IReviverValue } from "../../utils/JSONReviver";
+import { makeSerializable } from "../../utils/GenericReviver";
 import { LevelableActionClass, LevelableActionParams } from "./LevelableAction";
 import { clampInteger } from "../../utils/helpers/clampNumber";
 import { getEnumHelper } from "../../utils/EnumHelper";
@@ -72,7 +73,8 @@ export class Operation extends LevelableActionClass implements TeamActionWithCas
     this.teamCount = 0;
   }
 
-  toJSON(): IReviverValue {
+  // Custom save handling
+  jsonReplacer(): IReviverValue {
     return this.save("Operation", "teamCount");
   }
 
@@ -81,24 +83,14 @@ export class Operation extends LevelableActionClass implements TeamActionWithCas
     LevelableActionClass.prototype.loadData.call(this, loadedObject);
   }
 
-  static fromJSON(value: IReviverValue): Operation {
-    return Generic_fromJSON(Operation, value.data);
-  }
+  static includedKeys = makeSerializable("Operation", Operation);
 }
-
-constructorsForReviver.Operation = Operation;
 
 // shared member functions for Operation and BlackOperation
 export const operationSkillSuccessBonus = (inst: Bladeburner) => {
   return inst.getSkillMult(BladeburnerMultName.SuccessChanceOperation);
 };
 
-export function operationTeamSuccessBonus(this: Operation | BlackOperation, inst: Bladeburner) {
-  if (this.teamCount && this.teamCount > 0) {
-    this.teamCount = Math.min(this.teamCount, inst.teamSize);
-    const teamMultiplier = Math.pow(this.teamCount, 0.05);
-    return teamMultiplier;
-  }
-
-  return 1;
+export function operationTeamSuccessBonus(this: Operation | BlackOperation) {
+  return Math.pow(this.teamCount + 1, 0.05);
 }

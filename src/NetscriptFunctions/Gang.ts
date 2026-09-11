@@ -2,17 +2,18 @@ import type { Gang as IGang, EquipmentStats, GangOtherInfoObject } from "@nsdefs
 import type { Gang } from "../Gang/Gang";
 import type { GangMember } from "../Gang/GangMember";
 import type { GangMemberTask } from "../Gang/GangMemberTask";
-import type { InternalAPI, NetscriptContext } from "../Netscript/APIWrapper";
+import { type InternalAPI, type NetscriptContext, setRemovedFunctions } from "../Netscript/APIWrapper";
 
 import { GangPromise, RecruitmentResult } from "../Gang/Gang";
 import { Player } from "@player";
 import { FactionName } from "@enums";
-import { GangConstants } from "../Gang/data/Constants";
 import { AllGangs } from "../Gang/AllGangs";
 import { GangMemberTasks } from "../Gang/GangMemberTasks";
 import { GangMemberUpgrades } from "../Gang/GangMemberUpgrades";
 import { helpers } from "../Netscript/NetscriptHelpers";
 import { getEnumHelper } from "../utils/EnumHelper";
+import { CONSTANTS } from "../Constants";
+import { canCreateGang } from "../Gang/helpers";
 
 export function NetscriptGang(): InternalAPI<IGang> {
   /** Functions as an API check and also returns the gang object */
@@ -36,27 +37,12 @@ export function NetscriptGang(): InternalAPI<IGang> {
     return task;
   };
 
-  return {
-    createGang: (ctx) => (_faction) => {
+  const gangFunctions: InternalAPI<IGang> = {
+    createGang: (ctx, _faction) => {
       const faction = getEnumHelper("FactionName").nsGetMember(ctx, _faction);
-      if (Player.gang) {
-        return false;
-      }
-      const checkResult = Player.canAccessGang();
+      const checkResult = canCreateGang(faction);
       if (!checkResult.success) {
         helpers.log(ctx, () => checkResult.message);
-        return false;
-      }
-      if (!GangConstants.Names.includes(faction)) {
-        helpers.log(
-          ctx,
-          () =>
-            `${faction} does not allow creating a gang. You can only do that with ${GangConstants.Names.join(", ")}.`,
-        );
-        return false;
-      }
-      if (!Player.factions.includes(faction)) {
-        helpers.log(ctx, () => `You are not a member of ${faction}.`);
         return false;
       }
 
@@ -64,14 +50,14 @@ export function NetscriptGang(): InternalAPI<IGang> {
       Player.startGang(faction, isHacking);
       return true;
     },
-    inGang: () => () => {
+    inGang: () => {
       return Player.gang ? true : false;
     },
-    getMemberNames: (ctx) => () => {
+    getMemberNames: (ctx) => {
       const gang = getGang(ctx);
       return gang.members.map((member) => member.name);
     },
-    renameMember: (ctx) => (_memberName, _newName) => {
+    renameMember: (ctx, _memberName, _newName) => {
       const gang = getGang(ctx);
       const memberName = helpers.string(ctx, "memberName", _memberName);
       const newName = helpers.string(ctx, "newName", _newName);
@@ -97,7 +83,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
       helpers.log(ctx, () => `Renamed member from memberName: ${memberName} to newName: ${newName}`);
       return true;
     },
-    getGangInformation: (ctx) => () => {
+    getGangInformation: (ctx) => {
       const gang = getGang(ctx);
       return {
         faction: gang.facName,
@@ -116,7 +102,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
         equipmentCostMult: 1 / gang.getDiscount(),
       };
     },
-    getOtherGangInformation: (ctx) => () => {
+    getAllGangInformation: (ctx) => {
       getGang(ctx);
       const cpy: Record<string, GangOtherInfoObject> = {};
       for (const gang of Object.keys(AllGangs)) {
@@ -125,7 +111,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
 
       return cpy;
     },
-    getMemberInformation: (ctx) => (_memberName) => {
+    getMemberInformation: (ctx, _memberName) => {
       const memberName = helpers.string(ctx, "memberName", _memberName);
       const gang = getGang(ctx);
       const member = getGangMember(ctx, memberName);
@@ -177,19 +163,19 @@ export function NetscriptGang(): InternalAPI<IGang> {
         expGain: member.calculateExpGain(),
       };
     },
-    canRecruitMember: (ctx) => () => {
+    canRecruitMember: (ctx) => {
       const gang = getGang(ctx);
       return gang.canRecruitMember() === RecruitmentResult.Success;
     },
-    getRecruitsAvailable: (ctx) => () => {
+    getRecruitsAvailable: (ctx) => {
       const gang = getGang(ctx);
       return gang.getRecruitsAvailable();
     },
-    respectForNextRecruit: (ctx) => () => {
+    respectForNextRecruit: (ctx) => {
       const gang = getGang(ctx);
       return gang.respectForNextRecruit();
     },
-    recruitMember: (ctx) => (_memberName) => {
+    recruitMember: (ctx, _memberName) => {
       const memberName = helpers.string(ctx, "memberName", _memberName);
       const gang = getGang(ctx);
       const result = gang.recruitMember(memberName);
@@ -200,13 +186,13 @@ export function NetscriptGang(): InternalAPI<IGang> {
       ctx.workerScript.log("gang.recruitMember", () => `Successfully recruited gang member '${memberName}'`);
       return true;
     },
-    getTaskNames: (ctx) => () => {
+    getTaskNames: (ctx) => {
       const gang = getGang(ctx);
       const tasks = gang.getAllTaskNames();
       tasks.unshift("Unassigned");
       return tasks;
     },
-    setMemberTask: (ctx) => (_memberName, _taskName) => {
+    setMemberTask: (ctx, _memberName, _taskName) => {
       const memberName = helpers.string(ctx, "memberName", _memberName);
       const taskName = helpers.string(ctx, "taskName", _taskName);
       const gang = getGang(ctx);
@@ -234,7 +220,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
 
       return success;
     },
-    getTaskStats: (ctx) => (_taskName) => {
+    getTaskStats: (ctx, _taskName) => {
       const taskName = helpers.string(ctx, "taskName", _taskName);
       getGang(ctx);
       const task = getGangTask(ctx, taskName);
@@ -242,25 +228,25 @@ export function NetscriptGang(): InternalAPI<IGang> {
       copy.territory = Object.assign({}, task.territory);
       return copy;
     },
-    getEquipmentNames: (ctx) => () => {
+    getEquipmentNames: (ctx) => {
       getGang(ctx);
       return Object.keys(GangMemberUpgrades);
     },
-    getEquipmentCost: (ctx) => (_equipName) => {
+    getEquipmentCost: (ctx, _equipName) => {
       const equipName = helpers.string(ctx, "equipName", _equipName);
       const gang = getGang(ctx);
       const upg = GangMemberUpgrades[equipName];
       if (upg === null) return Infinity;
       return gang.getUpgradeCost(upg);
     },
-    getEquipmentType: (ctx) => (_equipName) => {
+    getEquipmentType: (ctx, _equipName) => {
       const equipName = helpers.string(ctx, "equipName", _equipName);
       getGang(ctx);
       const upg = GangMemberUpgrades[equipName];
       if (upg == null) return "";
       return upg.getType();
     },
-    getEquipmentStats: (ctx) => (_equipName) => {
+    getEquipmentStats: (ctx, _equipName) => {
       const equipName = helpers.string(ctx, "equipName", _equipName);
       getGang(ctx);
       const equipment = GangMemberUpgrades[equipName];
@@ -270,7 +256,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
       const typecheck: EquipmentStats = equipment.mults;
       return Object.assign({}, typecheck);
     },
-    purchaseEquipment: (ctx) => (_memberName, _equipName) => {
+    purchaseEquipment: (ctx, _memberName, _equipName) => {
       const memberName = helpers.string(ctx, "memberName", _memberName);
       const equipName = helpers.string(ctx, "equipName", _equipName);
       getGang(ctx);
@@ -295,14 +281,14 @@ export function NetscriptGang(): InternalAPI<IGang> {
 
       return res;
     },
-    ascendMember: (ctx) => (_memberName) => {
+    ascendMember: (ctx, _memberName) => {
       const memberName = helpers.string(ctx, "memberName", _memberName);
       const gang = getGang(ctx);
       const member = getGangMember(ctx, memberName);
       if (!member.canAscend()) return;
       return gang.ascendMember(member, ctx.workerScript);
     },
-    getAscensionResult: (ctx) => (_memberName) => {
+    getAscensionResult: (ctx, _memberName) => {
       const memberName = helpers.string(ctx, "memberName", _memberName);
       getGang(ctx);
       const member = getGangMember(ctx, memberName);
@@ -312,7 +298,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
         ...member.getAscensionResults(),
       };
     },
-    getInstallResult: (ctx) => (_memberName) => {
+    getInstallResult: (ctx, _memberName) => {
       const memberName = helpers.string(ctx, "memberName", _memberName);
       getGang(ctx);
       const member = getGangMember(ctx, memberName);
@@ -328,7 +314,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
         cha: member.calculateAscensionMult(postInstall.cha) / preInstall.cha,
       };
     },
-    setTerritoryWarfare: (ctx) => (_engage) => {
+    setTerritoryWarfare: (ctx, _engage) => {
       const engage = !!_engage;
       const gang = getGang(ctx);
       if (engage) {
@@ -339,7 +325,7 @@ export function NetscriptGang(): InternalAPI<IGang> {
         ctx.workerScript.log("gang.setTerritoryWarfare", () => "Disengaging in Gang Territory Warfare");
       }
     },
-    getChanceToWinClash: (ctx) => (_otherGang) => {
+    getChanceToWinClash: (ctx, _otherGang) => {
       const otherGang = helpers.string(ctx, "otherGang", _otherGang);
       const gang = getGang(ctx);
       if (AllGangs[otherGang] == null) {
@@ -351,14 +337,20 @@ export function NetscriptGang(): InternalAPI<IGang> {
 
       return playerPower / (otherPower + playerPower);
     },
-    getBonusTime: (ctx) => () => {
+    getBonusTime: (ctx) => {
       const gang = getGang(ctx);
-      return gang.storedCycles * 200;
+      return gang.storedCycles * CONSTANTS.MilliPerCycle;
     },
-    nextUpdate: (ctx) => () => {
+    nextUpdate: (ctx) => {
       getGang(ctx);
       if (!GangPromise.promise) GangPromise.promise = new Promise<number>((res) => (GangPromise.resolve = res));
       return GangPromise.promise;
     },
   };
+
+  // Removed functions
+  setRemovedFunctions(gangFunctions, {
+    getOtherGangInformation: { version: "3.0.0", replacement: "gang.getAllGangInformation" },
+  });
+  return gangFunctions;
 }

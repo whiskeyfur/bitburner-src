@@ -4,25 +4,57 @@
 
 ## NS.getServer() method
 
-Returns a server object for the given server. Defaults to the running script's server if host is not specified.
+Returns data of a server.
+
+If the server is a darknet server, it will also contain the "isOnline" field. If the darknet server has recently gone offline, the returned object will be a dummy server object with `isOnline: false`<!-- -->.
 
 **Signature:**
 
 ```typescript
-getServer(host?: string): Server;
+getServer(host?: string): Server & { isOnline?: boolean };
 ```
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  host | string | _(Optional)_ Optional. Hostname/IP for the requested server object. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+host
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ Optional. Hostname/IP of the server. Defaults to the hostname of the running script's server.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
-[Server](./bitburner.server.md)
+[Server](./bitburner.server.md) &amp; { isOnline?: boolean }
 
-The requested server object.
+Data of the server.
 
 ## Remarks
 

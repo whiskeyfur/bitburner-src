@@ -24,7 +24,7 @@ export const shortestPathInAGrid: Pick<CodingContractTypes, CodingContractName.S
         "    [[0,1],\n",
         "     [1,0]]\n",
         "\n",
-        "Answer: ''",
+        `Answer: ""`,
       ].join(" ");
     },
     difficulty: 7,
@@ -52,6 +52,9 @@ export const shortestPathInAGrid: Pick<CodingContractTypes, CodingContractName.S
       }
 
       return grid;
+    },
+    getAnswer: () => {
+      return null;
     },
     solver: (data, answer) => {
       const width = data[0].length;
@@ -116,6 +119,9 @@ export const shortestPathInAGrid: Pick<CodingContractTypes, CodingContractName.S
             break;
           default:
             return false;
+        }
+        if (!validPosition(ansY, ansX)) {
+          return false;
         }
       }
 

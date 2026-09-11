@@ -1,15 +1,21 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const fs = require("fs").promises;
 const path = require("path");
-const { isBinaryFormat } = require("../electron/saveDataBinaryFormat");
+const { decodeBase64BytesToBytes, isBinaryFormat, isSteamCloudFormat } = require("../electron/saveDataBinaryFormat");
+
+async function decompress(data) {
+  const decompressedReadableStream = new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return await new Response(decompressedReadableStream).text();
+}
 
 async function getSave(file) {
   const data = await fs.readFile(file);
 
   let jsonSaveString;
   if (isBinaryFormat(data)) {
-    const decompressedReadableStream = new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"));
-    jsonSaveString = await new Response(decompressedReadableStream).text();
+    jsonSaveString = await decompress(data);
+  } else if (isSteamCloudFormat(data)) {
+    jsonSaveString = await decompress(decodeBase64BytesToBytes(data));
   } else {
     jsonSaveString = decodeURIComponent(escape(atob(data)));
   }
@@ -27,7 +33,9 @@ async function getSave(file) {
     VersionSave: JSON.parse(saveData.VersionSave),
     LastExportBonus: JSON.parse(saveData.LastExportBonus),
     StaneksGiftSave: JSON.parse(saveData.StaneksGiftSave),
-    SaveTimestamp: new Date(parseInt(saveData.SaveTimestamp ?? "0", 10)).toLocaleString(),
+    GoSave: JSON.parse(saveData.GoSave),
+    DarknetSave: JSON.parse(saveData.DarknetSave),
+    InfiltrationsSave: JSON.parse(saveData.InfiltrationsSave),
   };
 
   const serverStrings = JSON.parse(saveData.AllServersSave);

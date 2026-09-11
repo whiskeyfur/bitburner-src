@@ -1,5 +1,8 @@
 import type { PromisePair } from "../Types/Promises";
-import type { BlackOperation, Contract, GeneralAction, Operation } from "./Actions";
+import type { BlackOperation } from "./Actions/BlackOperation";
+import type { Contract } from "./Actions/Contract";
+import type { GeneralAction } from "./Actions/GeneralAction";
+import type { Operation } from "./Actions/Operation";
 import type { Action, ActionIdFor, ActionIdentifier, Attempt } from "./Types";
 import type { Person } from "../PersonObjects/Person";
 import type { Skills as PersonSkills } from "../PersonObjects/Skills";
@@ -17,7 +20,8 @@ import {
   FactionName,
 } from "@enums";
 import { getKeyList } from "../utils/helpers/getKeyList";
-import { constructorsForReviver, Generic_toJSON, Generic_fromJSON, IReviverValue } from "../utils/JSONReviver";
+import { type IReviverValue, Generic_fromJSON } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
 import { formatHp, formatNumberNoSuffix, formatSleeveShock } from "../ui/formatNumber";
 import { Skills } from "./data/Skills";
 import { City } from "./City";
@@ -44,18 +48,19 @@ import { createContracts, loadContractsData } from "./data/Contracts";
 import { createOperations, loadOperationsData } from "./data/Operations";
 import { clampInteger, clampNumber } from "../utils/helpers/clampNumber";
 import { parseCommand } from "../Terminal/Parser";
-import { BlackOperations } from "./data/BlackOperations";
+import { createBlackOperations, loadBlackOperationsData } from "./data/BlackOperations";
 import { GeneralActions } from "./data/GeneralActions";
 import { PlayerObject } from "../PersonObjects/Player/PlayerObject";
 import { Sleeve } from "../PersonObjects/Sleeve/Sleeve";
 import { autoCompleteTypeShorthand } from "./utils/terminalShorthands";
 import { resolveTeamCasualties, type OperationTeam } from "./Actions/TeamCasualties";
-import { shuffleArray } from "../Infiltration/ui/BribeGame";
+import { shuffle } from "lodash";
 import { assertObject } from "../utils/TypeAssertion";
 import { throwIfReachable } from "../utils/helpers/throwIfReachable";
 import { loadActionIdentifier } from "./utils/loadActionIdentifier";
 import { pluralize } from "../utils/I18nUtils";
-import { calculateActionRankGain, calculateActionReputationGain } from "./Formulas";
+import { calculateActionRankGain, calculateActionRankLoss, calculateActionReputationGain } from "./Formulas";
+import { processWorkStats } from "../Work/Formulas";
 
 export const BladeburnerPromise: PromisePair<number> = { promise: null, resolve: null };
 
@@ -68,7 +73,31 @@ export class Bladeburner implements OperationTeam {
   skillPoints = 0;
   totalSkillPoints = 0;
 
-  teamSize = 0;
+  /**
+   * Do NOT directly read and write this field. You must use the getter/setter.
+   * We use _teamSize instead of a private field #teamSize to reduce the complexity of saving/loading code.
+   */
+  _teamSize = 0;
+  get teamSize() {
+    return this._teamSize;
+  }
+  set teamSize(value: number) {
+    // Ensure teamSize is a non-negative integer.
+    let newSize = value;
+    if (!Number.isInteger(newSize) || newSize < 0) {
+      newSize = 0;
+    }
+    // Early return if there is no change.
+    if (this._teamSize === newSize) {
+      return;
+    }
+    this._teamSize = newSize;
+    // Reduce teamCount of actions if it's greater than the team size.
+    for (const action of [...Object.values(this.operations), ...Object.values(this.blackOperations)]) {
+      action.teamCount = Math.min(action.teamCount, this._teamSize);
+    }
+  }
+
   get sleeveSize() {
     return Player.sleevesSupportingBladeburner().length;
   }
@@ -92,9 +121,13 @@ export class Bladeburner implements OperationTeam {
   staminaBonus = 0;
   maxStamina = 1;
   stamina = 1;
-  // Contracts and operations are stored on the Bladeburner object even though they are global so that they can utilize save/load of the main bladeburner object
+  // Contracts, operations and blackOps are stored on the Bladeburner object even though they are global so that they
+  // can utilize save/load of the main bladeburner object
   contracts: Record<BladeburnerContractName, Contract>;
   operations: Record<BladeburnerOperationName, Operation>;
+  blackOperations: Record<BladeburnerBlackOpName, BlackOperation>;
+  // Array for quick lookup by BlackOp number
+  blackOperationArray: BlackOperation[];
   numBlackOpsComplete = 0;
   logging = {
     general: true,
@@ -115,6 +148,11 @@ export class Bladeburner implements OperationTeam {
   constructor() {
     this.contracts = createContracts();
     this.operations = createOperations();
+    this.blackOperations = createBlackOperations();
+    this.blackOperationArray = Object.values(this.blackOperations).sort((a, b) => (a.n < b.n ? -1 : 1));
+    if (!this.blackOperationArray.every((blackOp, i) => blackOp.n === i)) {
+      throw new Error("blackOperationArray is not initialized with correct indices");
+    }
   }
 
   // Initialization code that is dependent on Player is here instead of in the constructor
@@ -542,8 +580,8 @@ export class Bladeburner implements OperationTeam {
       ++destCity.comms;
     }
     const count = Math.round(sourceCity.pop * percentage);
-    sourceCity.pop -= count;
-    destCity.pop += count;
+    sourceCity.changePopulationByCount(-count);
+    destCity.changePopulationByCount(count);
     if (destCity.pop < BladeburnerConstants.PopGrowthCeiling) {
       destCity.pop += BladeburnerConstants.BasePopGrowth;
     }
@@ -578,12 +616,12 @@ export class Bladeburner implements OperationTeam {
       ++sourceCity.comms;
       const percentage = getRandomIntInclusive(10, 20) / 100;
       const count = Math.round(sourceCity.pop * percentage);
-      sourceCity.pop += count;
+      sourceCity.changePopulationByCount(count);
       if (sourceCity.pop < BladeburnerConstants.PopGrowthCeiling) {
         sourceCity.pop += BladeburnerConstants.BasePopGrowth;
       }
       if (this.logging.events) {
-        this.log("Intelligence indicates that a new Synthoid community was formed in a city");
+        this.log("Intelligence indicates that a new Synthoid community was formed in a city.");
       }
     } else if (chance <= 0.1) {
       // Synthoid Community Migration, 5%
@@ -592,12 +630,12 @@ export class Bladeburner implements OperationTeam {
         ++sourceCity.comms;
         const percentage = getRandomIntInclusive(10, 20) / 100;
         const count = Math.round(sourceCity.pop * percentage);
-        sourceCity.pop += count;
+        sourceCity.changePopulationByCount(count);
         if (sourceCity.pop < BladeburnerConstants.PopGrowthCeiling) {
           sourceCity.pop += BladeburnerConstants.BasePopGrowth;
         }
         if (this.logging.events) {
-          this.log("Intelligence indicates that a new Synthoid community was formed in a city");
+          this.log("Intelligence indicates that a new Synthoid community was formed in a city.");
         }
       } else {
         --sourceCity.comms;
@@ -606,14 +644,14 @@ export class Bladeburner implements OperationTeam {
         // Change pop
         const percentage = getRandomIntInclusive(10, 20) / 100;
         const count = Math.round(sourceCity.pop * percentage);
-        sourceCity.pop -= count;
-        destCity.pop += count;
+        sourceCity.changePopulationByCount(-count);
+        destCity.changePopulationByCount(count);
         if (destCity.pop < BladeburnerConstants.PopGrowthCeiling) {
           destCity.pop += BladeburnerConstants.BasePopGrowth;
         }
         if (this.logging.events) {
           this.log(
-            "Intelligence indicates that a Synthoid community migrated from " + sourceCityName + " to some other city",
+            `Intelligence indicates that a Synthoid community migrated from ${sourceCityName} to some other city.`,
           );
         }
       }
@@ -621,13 +659,13 @@ export class Bladeburner implements OperationTeam {
       // New Synthoids (non community), 20%
       const percentage = getRandomIntInclusive(8, 24) / 100;
       const count = Math.round(sourceCity.pop * percentage);
-      sourceCity.pop += count;
+      sourceCity.changePopulationByCount(count);
       if (sourceCity.pop < BladeburnerConstants.PopGrowthCeiling) {
         sourceCity.pop += BladeburnerConstants.BasePopGrowth;
       }
       if (this.logging.events) {
         this.log(
-          "Intelligence indicates that the Synthoid population of " + sourceCityName + " just changed significantly",
+          `Intelligence indicates that the Synthoid population of ${sourceCityName} just changed significantly.`,
         );
       }
     } else if (chance <= 0.5) {
@@ -635,9 +673,7 @@ export class Bladeburner implements OperationTeam {
       this.triggerMigration(sourceCityName);
       if (this.logging.events) {
         this.log(
-          "Intelligence indicates that a large number of Synthoids migrated from " +
-            sourceCityName +
-            " to some other city",
+          `Intelligence indicates that a large number of Synthoids migrated from ${sourceCityName} to some other city.`,
         );
       }
     } else if (chance <= 0.7) {
@@ -645,16 +681,16 @@ export class Bladeburner implements OperationTeam {
       sourceCity.changeChaosByCount(1);
       sourceCity.changeChaosByPercentage(getRandomIntInclusive(5, 20));
       if (this.logging.events) {
-        this.log("Tensions between Synthoids and humans lead to riots in " + sourceCityName + "! Chaos increased");
+        this.log(`Tensions between Synthoids and humans lead to riots in ${sourceCityName}! Chaos increased.`);
       }
     } else if (chance <= 0.9) {
       // Less Synthoids, 20%
       const percentage = getRandomIntInclusive(8, 20) / 100;
       const count = Math.round(sourceCity.pop * percentage);
-      sourceCity.pop -= count;
+      sourceCity.changePopulationByCount(-count);
       if (this.logging.events) {
         this.log(
-          "Intelligence indicates that the Synthoid population of " + sourceCityName + " just changed significantly",
+          `Intelligence indicates that the Synthoid population of ${sourceCityName} just changed significantly.`,
         );
       }
     }
@@ -749,8 +785,7 @@ export class Bladeburner implements OperationTeam {
   }
 
   killRandomSupportingSleeves(n: number) {
-    const sup = [...Player.sleevesSupportingBladeburner()]; // Explicit shallow copy
-    shuffleArray(sup);
+    const sup = shuffle(Player.sleevesSupportingBladeburner()); // Makes a copy
     sup.slice(0, Math.min(sup.length, n)).forEach((sleeve) => sleeve.kill());
   }
 
@@ -761,7 +796,7 @@ export class Bladeburner implements OperationTeam {
     const action = this.getActionObject(this.action);
     const deaths = resolveTeamCasualties(action, this, success);
     if (this.logging.ops && deaths > 0) {
-      this.log("Lost " + formatNumberNoSuffix(deaths, 0) + " team members during this " + action.name);
+      this.log(`Lost ${formatNumberNoSuffix(deaths, 0)} team members during this ${action.name}.`);
     }
 
     const city = this.getCurrentCity();
@@ -941,7 +976,7 @@ export class Bladeburner implements OperationTeam {
             let loss = 0,
               damage = 0;
             if (action.rankLoss) {
-              loss = addOffset(action.rankLoss * rewardMultiplier, 10);
+              loss = addOffset(calculateActionRankLoss(action), 10);
               this.changeRank(person, -1 * loss);
             }
             if (action.hpLoss) {
@@ -1019,7 +1054,7 @@ export class Bladeburner implements OperationTeam {
           let rankLoss = 0;
           let damage = 0;
           if (action.rankLoss) {
-            rankLoss = addOffset(action.rankLoss, 10);
+            rankLoss = addOffset(calculateActionRankLoss(action), 10);
             this.changeRank(person, -1 * rankLoss);
           }
           if (action.hpLoss) {
@@ -1116,9 +1151,14 @@ export class Bladeburner implements OperationTeam {
             break;
           }
           case BladeburnerGeneralActionName.Recruitment: {
-            const actionTime = action.getActionTime(this, person) * 1000;
+            const actionTime = action.getActionTime(this, person);
+            // Without dnet, the best way to gain charisma in the early part of a BN run is to take uni course at zb.
+            // With only SF1.3, the "Leadership" course gives ~20.5exp/s. With this exponential saturation curve, the
+            // action gives worse exp than the course at first, but it becomes better later while never being
+            // overpowered. The gain rate is soft-capped at ~60exp/s, which is ~3x the uni course.
+            const charismaGainRate = clampNumber(60 * (1 - Math.exp(-Math.pow(person.exp.charisma / 216000, 1.3))), 1);
             if (action.attempt(this, person)) {
-              const expGain = 2 * BladeburnerConstants.BaseStatGain * actionTime;
+              const expGain = charismaGainRate * actionTime;
               retValue.chaExp = expGain;
               ++this.teamSize;
               if (this.logging.general) {
@@ -1130,7 +1170,7 @@ export class Bladeburner implements OperationTeam {
                 );
               }
             } else {
-              const expGain = BladeburnerConstants.BaseStatGain * actionTime;
+              const expGain = (charismaGainRate * actionTime) / 2;
               retValue.chaExp = expGain;
               if (this.logging.general) {
                 this.log(
@@ -1163,9 +1203,9 @@ export class Bladeburner implements OperationTeam {
             this.stamina = Math.min(this.maxStamina, this.stamina + staminaGain);
             if (this.logging.general) {
               let extraLog = "";
-              if (Player.hp.current > currentHp) {
+              if (person.hp.current > currentHp) {
                 extraLog += ` Restored ${formatHp(BladeburnerConstants.HrcHpGain)} HP. Current HP is ${formatHp(
-                  Player.hp.current,
+                  person.hp.current,
                 )}.`;
               }
               if (this.stamina > currentStamina) {
@@ -1185,7 +1225,7 @@ export class Bladeburner implements OperationTeam {
               operation.count += (60 * 3 * operation.growthFunction()) / BladeburnerConstants.ActionCountGrowthPeriod;
             }
             if (this.logging.general) {
-              this.log(`${person.whoAmI()}: Incited violence in the synthoid communities.`);
+              this.log(`${person.whoAmI()}: Incited violence in the Synthoid communities.`);
             }
             for (const cityName of Object.values(CityName)) {
               const city = this.cities[cityName];
@@ -1205,7 +1245,8 @@ export class Bladeburner implements OperationTeam {
         const __a: never = action;
       }
     }
-    return retValue;
+
+    return processWorkStats(person, retValue);
   }
 
   infiltrateSynthoidCommunities(): void {
@@ -1218,7 +1259,7 @@ export class Bladeburner implements OperationTeam {
       this.operations[operation].count += amt;
     }
     if (this.logging.general) {
-      this.log(`Sleeve: Infiltrate the synthoid communities.`);
+      this.log(`Sleeve: Infiltrate the Synthoid communities.`);
     }
   }
 
@@ -1232,9 +1273,11 @@ export class Bladeburner implements OperationTeam {
     }
     this.maxRank = Math.max(this.rank, this.maxRank);
 
-    const bladeburnerFaction = Factions[FactionName.Bladeburners];
-    if (bladeburnerFaction.isMember) {
-      bladeburnerFaction.playerReputation += calculateActionReputationGain(person, change);
+    if (change > 0) {
+      const bladeburnerFaction = Factions[FactionName.Bladeburners];
+      if (bladeburnerFaction.isMember) {
+        bladeburnerFaction.playerReputation += calculateActionReputationGain(person, change);
+      }
     }
 
     // Gain skill points
@@ -1398,7 +1441,7 @@ export class Bladeburner implements OperationTeam {
       case BladeburnerActionType.Operation:
         return this.operations[actionId.name];
       case BladeburnerActionType.BlackOp:
-        return BlackOperations[actionId.name];
+        return this.blackOperations[actionId.name];
       case BladeburnerActionType.General:
         return GeneralActions[actionId.name];
     }
@@ -1417,7 +1460,7 @@ export class Bladeburner implements OperationTeam {
       case BladeburnerActionType.Operation:
         return this.operations[name as BladeburnerOperationName];
       case BladeburnerActionType.BlackOp:
-        return BlackOperations[name as BladeburnerBlackOpName];
+        return this.blackOperations[name as BladeburnerBlackOpName];
     }
   }
 
@@ -1428,21 +1471,21 @@ export class Bladeburner implements OperationTeam {
     return id ? this.getActionObject(id) : null;
   }
 
-  static keysToSave = getKeyList(Bladeburner, { removedKeys: ["skillMultipliers"] });
-  // Don't load contracts or operations because of the special loading method they use, see fromJSON
-  static keysToLoad = getKeyList(Bladeburner, { removedKeys: ["skillMultipliers", "contracts", "operations"] });
+  static includedKeys = makeSerializable("Bladeburner", Bladeburner, {
+    removedKeys: ["skillMultipliers", "blackOperationArray"],
+  });
+  // Don't load contracts or operations because of the special loading method they use, see jsonReviver
+  static keysToLoad = getKeyList(Bladeburner, {
+    removedKeys: ["skillMultipliers", "contracts", "operations", "blackOperations", "blackOperationArray"],
+  });
 
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("Bladeburner", this, Bladeburner.keysToSave);
-  }
-
-  /** Initializes a Bladeburner object from a JSON save state. */
-  static fromJSON(value: IReviverValue): Bladeburner {
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): Bladeburner {
     assertObject(value.data);
-    // operations and contracts are not loaded directly from the save, we load them in using a different method
+    // Contracts, operations, and black ops are not loaded directly from the save; they are loaded via a different method.
     const contractsData = value.data.contracts;
     const operationsData = value.data.operations;
+    const blackOperationsData = value.data.blackOperations;
     const bladeburner = Generic_fromJSON(Bladeburner, value.data, Bladeburner.keysToLoad);
 
     /**
@@ -1463,10 +1506,11 @@ export class Bladeburner implements OperationTeam {
         bladeburner.automateActionLow = loadActionIdentifier(bladeburner.automateActionLow);
       }
     }
-    // Loading this way allows better typesafety and also allows faithfully reconstructing contracts/operations
+    // Loading this way allows better typesafety and also allows faithfully reconstructing contracts/operations/blackOps
     // even from save data that is missing a lot of static info about the objects.
     loadContractsData(contractsData, bladeburner.contracts);
     loadOperationsData(operationsData, bladeburner.operations);
+    loadBlackOperationsData(blackOperationsData, bladeburner.blackOperations);
     // Regenerate skill multiplier data, which is not included in savedata
     bladeburner.updateSkillMultipliers();
     // If stamina or maxStamina is invalid, we set both of them to 1 and recalculate them.
@@ -1479,8 +1523,10 @@ export class Bladeburner implements OperationTeam {
       bladeburner.maxStamina = 1;
       bladeburner.calculateMaxStamina();
     }
+    // "_teamSize" was "teamSize" in pre-v3 versions.
+    if ("teamSize" in value.data && Number.isFinite(value.data.teamSize)) {
+      bladeburner.teamSize = value.data.teamSize as number;
+    }
     return bladeburner;
   }
 }
-
-constructorsForReviver.Bladeburner = Bladeburner;

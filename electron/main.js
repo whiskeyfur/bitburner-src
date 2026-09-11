@@ -1,6 +1,6 @@
 /* eslint-disable no-process-exit */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { app, dialog, BrowserWindow, ipcMain, protocol, net } = require("electron");
+const { app, dialog, BrowserWindow, ipcMain, protocol, net, shell } = require("electron");
 
 const log = require("electron-log");
 log.catchErrors();
@@ -19,7 +19,7 @@ app.on("window-all-closed", () => {
   process.exit(0);
 });
 
-require("./steamworksUtils");
+const { MissingVcRuntimeError } = require("./steamworksUtils");
 const gameWindow = require("./gameWindow");
 const utils = require("./utils");
 const storage = require("./storage");
@@ -27,11 +27,14 @@ const debounce = require("lodash/debounce");
 const Store = require("electron-store");
 const store = new Store();
 const path = require("path");
-const { realpathSync, readFileSync } = require("fs");
-const { fileURLToPath } = require("url");
+const { realpathSync } = require("fs");
+const { fileURLToPath, format } = require("url");
 
-log.transports.file.level = store.get("file-log-level", "info");
-log.transports.console.level = store.get("console-log-level", "debug");
+utils.initializeLogLevelConfig();
+
+// Apply config of log levels.
+log.transports.file.level = store.get("file-log-level");
+log.transports.console.level = store.get("console-log-level");
 
 log.info(`Started app: ${JSON.stringify(process.argv)}`);
 
@@ -219,11 +222,25 @@ app.on("ready", async () => {
       relativePath = path.relative(__dirname, realPath);
       // Only allow access to files in "dist" folder or html files in the same directory
       if (method === "GET" && (relativePath.startsWith("dist") || relativePath.match(/^[a-zA-Z-_]*\.html/))) {
-        const customHeaders = {};
-        if (relativePath.endsWith(".wasm")) {
-          customHeaders["Content-Type"] = "application/wasm";
-        }
-        return new Response(readFileSync(realPath), { headers: new Headers(customHeaders) });
+        return net
+          .fetch(
+            /**
+             * On Windows, passing realPath (e.g., "C:\path") directly to net.fetch is okay, but on Linux, passing
+             * realPath (e.g., /path) like that throws an error (TypeError: Failed to parse URL from /path). We have to
+             * convert it to a file:// URL.
+             */
+            format({ pathname: realPath, protocol: "file" }),
+            {
+              /**
+               * By default, requests made by net.fetch go through custom protocol handlers, so we have to explicitly tell it
+               * to bypass those handlers; otherwise, it creates an infinite loop.
+               *
+               * Ref: https://github.com/electron/electron/issues/39402
+               */
+              bypassCustomProtocolHandlers: true,
+            },
+          )
+          .catch((error) => log.error(error));
       }
     } catch (error) {
       log.error(error);
@@ -241,17 +258,23 @@ app.on("ready", async () => {
     await window.loadFile("export.html");
     window.show();
     setStopProcessHandler(window);
-    await utils.exportSave(window);
   } else {
     window = await startWindow(process.argv.includes("--no-scripts"));
     if (global.steamworksError) {
-      await dialog.showMessageBox(window, {
+      const buttons = ["OK"];
+      if (global.steamworksError instanceof MissingVcRuntimeError) {
+        buttons.push("Download Visual C++ v14 Redistributable");
+      }
+      const { response } = await dialog.showMessageBox(window, {
         title: "Bitburner",
         message: "Could not connect to Steam",
-        detail: `${global.steamworksError.message}\n\nYou won't be able to receive achievements until this is resolved and you restart the game.`,
+        detail: `${global.steamworksError.message}\n\nSteam Cloud and Steam achievements won't work until this is resolved and you restart the game.`,
         type: "warning",
-        buttons: ["OK"],
+        buttons,
       });
+      if (response === 1) {
+        await shell.openExternal("https://aka.ms/vc14/vc_redist.x64.exe");
+      }
     }
   }
 });

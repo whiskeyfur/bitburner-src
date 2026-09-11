@@ -15,10 +15,11 @@ import {
 import { IPAddress } from "../Types/strings";
 import { createRandomIp } from "../utils/IPAddress";
 
-import { IReviverValue, constructorsForReviver } from "../utils/JSONReviver";
+import { type IReviverValue } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
 import { Player } from "@player";
 
-interface IConstructorParams {
+interface HacknetServerConstructorParams {
   adminRights?: boolean;
   hostname: string;
   ip?: IPAddress;
@@ -50,12 +51,12 @@ export class HacknetServer extends BaseServer implements IHacknetNode {
   // Total number of hashes earned by this server
   totalHashesGenerated = 0;
 
-  // Flag indicating whether this is a purchased server
+  // Flag indicating whether this is a server owned by the player (e.g., home, cloud servers, hacknet servers)
   purchasedByPlayer = true;
 
   isHacknetServer = true;
 
-  constructor(params: IConstructorParams = { hostname: "", ip: createRandomIp() }) {
+  constructor(params: HacknetServerConstructorParams = { hostname: "", ip: createRandomIp() }) {
     super(params);
 
     this.maxRam = 1;
@@ -134,16 +135,17 @@ export class HacknetServer extends BaseServer implements IHacknetNode {
     }
   }
 
-  // Serialize the current object to a JSON save state
-  toJSON(): IReviverValue {
-    return this.toJSONBase("HacknetServer", includedKeys);
+  // Custom save handling
+  jsonReplacer(): IReviverValue {
+    return this.toJSONBase("HacknetServer", HacknetServer.includedKeys);
   }
 
-  // Initializes a HacknetServer Object from a JSON save state
-  static fromJSON(value: IReviverValue): HacknetServer {
-    return BaseServer.fromJSONBase(value, HacknetServer, includedKeys);
+  // Custom load handling
+  static jsonReviver(value: IReviverValue): HacknetServer {
+    return BaseServer.fromJSONBase(value, HacknetServer, HacknetServer.includedKeys);
   }
+
+  static includedKeys = BaseServer.getIncludedKeys(HacknetServer);
 }
-const includedKeys = BaseServer.getIncludedKeys(HacknetServer);
 
-constructorsForReviver.HacknetServer = HacknetServer;
+makeSerializable("HacknetServer", HacknetServer);

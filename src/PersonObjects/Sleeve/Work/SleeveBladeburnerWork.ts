@@ -1,13 +1,12 @@
 import type { Sleeve } from "../Sleeve";
 import type { ActionIdentifier } from "../../../Bladeburner/Types";
-import type { PromisePair } from "../../../Types/Promises";
 import { Player } from "@player";
 import { BladeburnerActionType, BladeburnerGeneralActionName } from "@enums";
-import { Generic_fromJSON, Generic_toJSON, IReviverValue, constructorsForReviver } from "../../../utils/JSONReviver";
-import { applySleeveGains, SleeveWorkClass, SleeveWorkType } from "./Work";
+import { Generic_fromJSON, type IReviverValue } from "../../../utils/JSONReviver";
+import { makeSerializable } from "../../../utils/GenericReviver";
+import { applySleeveGains, SleeveBaseWork, SleeveWorkType } from "./Work";
 import { CONSTANTS } from "../../../Constants";
 import { scaleWorkStats } from "../../../Work/WorkStats";
-import { getKeyList } from "../../../utils/helpers/getKeyList";
 import { loadActionIdentifier } from "../../../Bladeburner/utils/loadActionIdentifier";
 import { invalidWork } from "../../../Work/InvalidWork";
 import { assertObject } from "../../../utils/TypeAssertion";
@@ -16,15 +15,14 @@ interface SleeveBladeburnerWorkParams {
   actionId: ActionIdentifier & { type: BladeburnerActionType.General | BladeburnerActionType.Contract };
 }
 
-export const isSleeveBladeburnerWork = (w: SleeveWorkClass | null): w is SleeveBladeburnerWork =>
+export const isSleeveBladeburnerWork = (w: SleeveBaseWork | null): w is SleeveBladeburnerWork =>
   w?.type === SleeveWorkType.BLADEBURNER;
 
-export class SleeveBladeburnerWork extends SleeveWorkClass {
+export class SleeveBladeburnerWork extends SleeveBaseWork {
   type: SleeveWorkType.BLADEBURNER = SleeveWorkType.BLADEBURNER;
   tasksCompleted = 0;
   cyclesWorked = 0;
   actionId: ActionIdentifier & { type: BladeburnerActionType.General | BladeburnerActionType.Contract };
-  nextCompletionPair: PromisePair<void> = { promise: null, resolve: null };
 
   constructor(params?: SleeveBladeburnerWorkParams) {
     super();
@@ -39,14 +37,6 @@ export class SleeveBladeburnerWork extends SleeveWorkClass {
     const action = Player.bladeburner.getActionObject(this.actionId);
     const timeInMs = action.getActionTime(Player.bladeburner, sleeve) * 1000;
     return timeInMs / CONSTANTS.MilliPerCycle;
-  }
-
-  finish() {
-    if (this.nextCompletionPair.resolve) {
-      this.nextCompletionPair.resolve();
-      this.nextCompletionPair.resolve = null;
-      this.nextCompletionPair.promise = null;
-    }
   }
 
   process(sleeve: Sleeve, cycles: number) {
@@ -67,15 +57,8 @@ export class SleeveBladeburnerWork extends SleeveWorkClass {
 
       this.tasksCompleted++;
       this.cyclesWorked -= this.cyclesNeeded(sleeve);
-      // Resolve and reset nextCompletion promise
-      this.finish();
+      this.resolveNextCompletion();
     }
-  }
-
-  get nextCompletion(): Promise<void> {
-    if (!this.nextCompletionPair.promise)
-      this.nextCompletionPair.promise = new Promise((r) => (this.nextCompletionPair.resolve = r));
-    return this.nextCompletionPair.promise;
   }
 
   APICopy(sleeve: Sleeve) {
@@ -90,15 +73,8 @@ export class SleeveBladeburnerWork extends SleeveWorkClass {
     };
   }
 
-  static savedKeys = getKeyList(SleeveBladeburnerWork, { removedKeys: ["nextCompletionPair"] });
-
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("SleeveBladeburnerWork", this, SleeveBladeburnerWork.savedKeys);
-  }
-
-  /** Initializes a BladeburnerWork object from a JSON save state. */
-  static fromJSON(value: IReviverValue): SleeveBladeburnerWork {
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): SleeveBladeburnerWork {
     assertObject(value.data);
     let actionId = loadActionIdentifier(value.data?.actionId);
     if (!actionId) {
@@ -115,8 +91,8 @@ export class SleeveBladeburnerWork extends SleeveWorkClass {
       }
     }
     value.data.actionId = actionId;
-    return Generic_fromJSON(SleeveBladeburnerWork, value.data, SleeveBladeburnerWork.savedKeys);
+    return Generic_fromJSON(SleeveBladeburnerWork, value.data, SleeveBladeburnerWork.includedKeys);
   }
-}
 
-constructorsForReviver.SleeveBladeburnerWork = SleeveBladeburnerWork;
+  static includedKeys = makeSerializable("SleeveBladeburnerWork", SleeveBladeburnerWork);
+}

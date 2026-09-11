@@ -8,8 +8,6 @@ Awareness and popularity are capped at `Number.MAX_VALUE` (~1.7976931348623157E+
 
 Raw values of those stats are crucial, but their ratio is also important. We want to have high ratio of popularity/awareness, check this [section](./optimal-selling-price-market-ta2.md) for formulas.
 
-Popularity decreases by 0.0001 per cycle.
-
 ## Wilson Analytics
 
 Wilson is a multiplier that is applied on Advert's benefits when we buy Advert, so it's not retroactive. Therefore, we need to buy it as soon as possible. However, there are cases that Wilson is too expensive and it does not bring much benefits. Round 1 and 2 are those cases.
@@ -24,11 +22,17 @@ Cost: use the formulas in this [section](./unlocks-upgrade-research.md) with `Ba
 
 Benefit:
 
-$$AdvertMultiplier = WilsonUpgradeBenefit\ast ResearchAdvertisingMultiplier$$
+$$
+AdvertMultiplier = WilsonUpgradeBenefit\ast ResearchAdvertisingMultiplier
+$$
 
-$$Awareness = (Awareness + 3\ast AdvertMultiplier)\ast(1.005*AdvertMultiplier)$$
+$$
+Awareness = (Awareness + 3\ast AdvertMultiplier)\ast(1.005*AdvertMultiplier)
+$$
 
-$$Popularity = (Popularity + AdvertMultiplier)\ast(1 + {Random(1,3)}\ast{0.005})\ast AdvertMultiplier$$
+$$
+Popularity = (Popularity + AdvertMultiplier)\ast(1 + {Random(1,3)}\ast{0.005})\ast AdvertMultiplier
+$$
 
 ## Advice
 

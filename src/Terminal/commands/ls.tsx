@@ -26,21 +26,24 @@ import {
 import { isMember } from "../../utils/EnumHelper";
 import { Settings } from "../../Settings/Settings";
 import { formatBytes, formatRam } from "../../ui/formatNumber";
+import { DarknetServer } from "../../Server/DarknetServer";
+import type { CacheFilePath } from "../../Paths/CacheFilePath";
 
-export function ls(args: (string | number | boolean)[], server: BaseServer): void {
+export function ls(args: (string | number | boolean)[], server: BaseServer): undefined {
   enum FileType {
     Folder,
     Message,
     TextFile,
     Program,
     Contract,
+    Cache,
     Script,
   }
 
   type FileGroup =
     | {
         // Types that are not clickable only need to be string[]
-        type: FileType.Folder | FileType.Program | FileType.Contract;
+        type: FileType.Folder | FileType.Program | FileType.Contract | FileType.Cache;
         segments: string[];
       }
     | { type: FileType.Message; segments: FilePath[] }
@@ -72,7 +75,7 @@ export function ls(args: (string | number | boolean)[], server: BaseServer): voi
   const filter = flags["--grep"] ?? "";
 
   const numArgs = args.length;
-  function incorrectUsage(): void {
+  function incorrectUsage(): undefined {
     Terminal.error("Incorrect usage of ls command. Usage: ls [dir] [-l] [-h] [-g, --grep pattern]");
   }
 
@@ -94,6 +97,7 @@ export function ls(args: (string | number | boolean)[], server: BaseServer): voi
   const allScripts: ScriptFilePath[] = [];
   const allTextFiles: TextFilePath[] = [];
   const allContracts: ContractFilePath[] = [];
+  const allCaches: CacheFilePath[] = [];
   const allMessages: FilePath[] = [];
   const folders: Directory[] = [];
 
@@ -121,15 +125,22 @@ export function ls(args: (string | number | boolean)[], server: BaseServer): voi
   for (const scriptFilename of server.scripts.keys()) handlePath(scriptFilename, allScripts);
   for (const txtFilename of server.textFiles.keys()) handlePath(txtFilename, allTextFiles);
   for (const contract of server.contracts) handlePath(contract.fn, allContracts);
+  if (server instanceof DarknetServer) {
+    for (const cache of server.caches) handlePath(cache, allCaches);
+  }
   for (const msgOrLit of server.messages) handlePath(msgOrLit as FilePath, allMessages);
 
   // Sort the files/folders alphabetically then print each
-  allPrograms.sort();
-  allScripts.sort();
-  allTextFiles.sort();
-  allContracts.sort();
-  allMessages.sort();
-  folders.sort();
+
+  const trueAlphabetical = (a: string, b: string) => a.localeCompare(b);
+
+  allPrograms.sort(trueAlphabetical);
+  allScripts.sort(trueAlphabetical);
+  allTextFiles.sort(trueAlphabetical);
+  allContracts.sort(trueAlphabetical);
+  allCaches.sort(trueAlphabetical);
+  allMessages.sort(trueAlphabetical);
+  folders.sort(trueAlphabetical);
 
   let maxSizeStrLength = 0;
   let maxRamStrLength = 0;
@@ -142,6 +153,7 @@ export function ls(args: (string | number | boolean)[], server: BaseServer): voi
     allScripts.forEach((p) => allDisplayableItems.push({ path: p, type: FileType.Script }));
     allPrograms.forEach((p) => allDisplayableItems.push({ path: p, type: FileType.Program }));
     allContracts.forEach((p) => allDisplayableItems.push({ path: p, type: FileType.Contract }));
+    allCaches.forEach((p) => allDisplayableItems.push({ path: p, type: FileType.Cache }));
 
     for (const item of allDisplayableItems) {
       const { ramDisplay, sizeDisplay } = getItemNumericData(item.path, item.type);
@@ -174,15 +186,13 @@ export function ls(args: (string | number | boolean)[], server: BaseServer): voi
         : combinePath(baseDirectory, relativePath as FilePath);
 
     // Determine file size
-    let contentBytes = 0;
+    let file;
     if (fileType === FileType.TextFile) {
-      const file = server.textFiles.get(fullPath as TextFilePath);
-      contentBytes = file?.content ? new TextEncoder().encode(file.content).length : 0;
+      file = server.textFiles.get(fullPath as TextFilePath);
     } else {
-      // Script
-      const file = server.scripts.get(fullPath as ScriptFilePath);
-      contentBytes = file?.content ? new TextEncoder().encode(file.content).length : 0;
+      file = server.scripts.get(fullPath as ScriptFilePath);
     }
+    const contentBytes = file?.getSize() ?? 0;
     if (flags["-l"] && flags["-h"]) {
       sizeDisplay = formatBytes(contentBytes);
     } else {
@@ -336,6 +346,7 @@ export function ls(args: (string | number | boolean)[], server: BaseServer): voi
     { type: FileType.TextFile, segments: allTextFiles },
     { type: FileType.Program, segments: allPrograms },
     { type: FileType.Contract, segments: allContracts },
+    { type: FileType.Cache, segments: allCaches },
     { type: FileType.Script, segments: allScripts },
   ];
   for (const group of groups) {

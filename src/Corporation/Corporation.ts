@@ -1,6 +1,6 @@
 import type { PromisePair } from "../Types/Promises";
 import { Player } from "@player";
-import { CorpStateName, InvestmentOffer } from "@nsdefs";
+import type { CorpStateName, InvestmentOffer, Result } from "@nsdefs";
 import { CorpUnlockName, CorpUpgradeName, LiteratureName } from "@enums";
 import { CorporationState } from "./CorporationState";
 import { CorpUnlocks } from "./data/CorporationUnlocks";
@@ -14,12 +14,12 @@ import { currentNodeMults } from "../BitNode/BitNodeMultipliers";
 import { showLiterature } from "../Literature/LiteratureHelpers";
 
 import { dialogBoxCreate } from "../ui/React/DialogBox";
-import { constructorsForReviver, Generic_toJSON, Generic_fromJSON, IReviverValue } from "../utils/JSONReviver";
+import { type IReviverValue, Generic_fromJSON } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
 import { JSONMap, JSONSet } from "../Types/Jsonable";
 import { formatMoney } from "../ui/formatNumber";
-import { isPositiveInteger, type Result } from "../types";
+import { isPositiveInteger } from "../types";
 import { createEnumKeyedRecord, getRecordValues } from "../Types/Record";
-import { getKeyList } from "../utils/helpers/getKeyList";
 import { assertObject } from "../utils/TypeAssertion";
 
 export const CorporationPromise: PromisePair<CorpStateName> = { promise: null, resolve: null };
@@ -150,7 +150,7 @@ export class Corporation {
           dialogBoxCreate(
             "There was an error calculating your Corporations funds and they got reset to 0. " +
               "This is a bug. Please report to game developer.\n\n" +
-              "(Your funds have been set to $150b for the inconvenience)",
+              `(Your funds have been set to ${formatMoney(150e9)} for the inconvenience)`,
           );
           this.funds = 150e9;
         }
@@ -490,16 +490,11 @@ export class Corporation {
   }
 
   // Exclude numberOfOfficesAndWarehouses
-  static includedProperties = getKeyList(Corporation, { removedKeys: ["numberOfOfficesAndWarehouses"] });
-
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("Corporation", this, Corporation.includedProperties);
-  }
+  static includedKeys = makeSerializable("Corporation", Corporation, { removedKeys: ["numberOfOfficesAndWarehouses"] });
 
   /** Initializes a Corporation object from a JSON save state. */
-  static fromJSON(value: IReviverValue): Corporation {
-    const corporation = Generic_fromJSON(Corporation, value.data, Corporation.includedProperties);
+  static jsonReviver(value: IReviverValue): Corporation {
+    const corporation = Generic_fromJSON(Corporation, value.data, Corporation.includedKeys);
     // numberOfOfficesAndWarehouses is not in the included properties and must be calculated
     for (const division of corporation.divisions.values()) {
       corporation.numberOfOfficesAndWarehouses += getRecordValues(division.offices).length;
@@ -510,8 +505,12 @@ export class Corporation {
     if (typeof value.data.dividendTax === "number") {
       corporation.tributeModifier = value.data.dividendTax;
     }
+    if (!Number.isFinite(corporation.totalAssets)) {
+      corporation.totalAssets = 0;
+    }
+    if (!Number.isFinite(corporation.previousTotalAssets)) {
+      corporation.previousTotalAssets = 0;
+    }
     return corporation;
   }
 }
-
-constructorsForReviver.Corporation = Corporation;

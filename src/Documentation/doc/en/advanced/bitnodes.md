@@ -24,8 +24,12 @@ In this BitNode, most forms of income such as working at a [Company](../basic/co
 [Servers](../basic/servers.md) have less money on them and lowered growth rates, but it is easier to lower their security level using the `weaken` function.
 
 Furthermore, some BitNodes introduce new content and mechanics.
-For example, there is one BitNode that grants access to the [Singularity API](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.singularity.md).
+For example, there is one BitNode that grants access to the [Singularity API](../../../../../markdown/bitburner.singularity.md).
 There is another BitNode in which you can manage a [Gang](gang.md) to earn money and [Reputation](../basic/reputation.md).
+
+After entering a BitNode, if you want to jump to another BitNode immediately, you can run `b1t_flum3.exe` to return to
+the BitVerse screen.
+Note that if you leave the current BitNode in this way, you will lose all progress made in that BitNode.
 
 ## How to destroy a BitNode
 
@@ -45,6 +49,13 @@ The only things that will persist through destroying BitNodes are:
 - [Source-Files](sourcefiles.md)
 - [Scripts](../basic/scripts.md) on the home computer
 - [Intelligence](intelligence.md)
+
+## BitNode recommendation
+
+If you want to get advice on choosing your next BitNode, you can check these BitNode recommendation guides:
+
+- [BitNode recommendation - Short guide](bitnode_recommendation_short_guide.md)
+- [BitNode recommendation - Comprehensive guide](bitnode_recommendation_comprehensive_guide.md)
 
 ## BitNode list
 
@@ -146,7 +157,7 @@ You are trying to make a name for yourself as an up-and-coming hedge fund manage
 
 In this BitNode:
 
-- You start with $250 million
+- Your starting money is 250 million.
 - You start with a WSE membership and access to the TIX API
 - You are able to short stocks and place different types of orders (limit/stop)
 
@@ -189,7 +200,7 @@ achieved immortality - at least for those that could afford it.
 
 This BitNode unlocks Sleeve and Grafting technology:
 
-- Sleeve: Duplicate your consciousness into Synthoids, allowing you to perform different tasks asynchronously. You cannot buy Sleeves outside this BitNode.
+- Sleeve: Duplicate your consciousness into Synthoids, allowing you to perform different tasks asynchronously. You cannot buy Sleeves or upgrade them outside this BitNode.
 - Grafting: Visit VitaLife in New Tokyo to get access to this technology. It allows you to graft augmentations, which is an alternative way of installing augmentations.
 
 Destroying this BitNode will give you Source-File 10, or if you already have this Source-File, it will upgrade its level up to a maximum of 3. This Source-File unlocks Sleeve and Grafting API in other BitNodes. Each level of this Source-File also grants you a Sleeve.
@@ -251,3 +262,20 @@ and increases the reputation converted to favor for winning two games in a row t
 - Level 1: 1000 rep to favor
 - Level 2: 1500 rep to favor
 - Level 3: 2000 rep to favor
+
+### BitNode 15: The Secrets of the Dark Net
+
+Delving into the uncharted and secretive parts of the internet comes with the promise of freedom from oppressive authority and surveillance. Leaving stability behind and turning to the dark web comes with risks... but also rewards. Unlike the traditional network of servers, the "dark" net is a constantly shifting, complex, unreliable place
+where servers can move or disappear at any moment. Long-distance communication is often impossible, requiring scripts to be self-sufficient and durable, and spread themselves to stay alive.
+
+If you can take advantage of the darknet servers' weak passwords and leaky logs, you will be able to gain access to the deepest parts of the darknet and its secrets. In this BitNode, the Daedalus faction has not yet found and monopolized the fabled Red Pill augmentation.
+Legends say it can be found somewhere, out there in the dark...
+
+Destroying this BitNode will give you Source-File 15, or if you already have this Source-File, it will upgrade
+its level up to a maximum of 3.
+
+This Source-File grants the following benefits:
+
+- Level 1: Permanently start with the TOR router and DarkscapeNavigator.exe, and unlock the full dark web on all BitNodes.
+- Level 2: Your charisma level increases job salary and rep gain. Also increases authentication speed by 20%
+- Level 3: Your charisma level increases faction work rep gain. Also increases the xp and money gained from .cache files by 50%.

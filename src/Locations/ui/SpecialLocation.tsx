@@ -10,13 +10,14 @@
  * This subcomponent creates all of the buttons for interacting with those special
  * properties
  */
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 
-import { Location } from "../Location";
+import type { Location } from "../Location";
+import { Locations } from "../Locations";
 import { CreateCorporationModal } from "../../Corporation/ui/modals/CreateCorporationModal";
-import { AugmentationName, FactionName, LocationName, ToastVariant } from "@enums";
+import { AugmentationName, CompletedProgramName, FactionName, LocationName, ToastVariant } from "@enums";
 import { Factions } from "../../Faction/Factions";
 import { joinFaction } from "../../Faction/FactionHelpers";
 
@@ -39,9 +40,49 @@ import { canAccessBitNodeFeature, knowAboutBitverse } from "../../BitNode/BitNod
 import { useRerender } from "../../ui/React/hooks";
 import { PromptEvent } from "../../ui/React/PromptManager";
 import { canAcceptStaneksGift } from "../../CotMG/Helper";
+import { getDarkscapeNavigator } from "../../DarkNet/effects/effects";
+import { hasDarknetAccess } from "../../DarkNet/utils/darknetAuthUtils";
+import { DarknetConstants } from "../../DarkNet/Constants";
+import { formatMoney } from "../../ui/formatNumber";
 
 interface SpecialLocationProps {
   loc: Location;
+}
+
+function SpecialLocationHint(bitNode: number): React.ReactElement {
+  let message;
+  switch (bitNode) {
+    case 3:
+      if (Player.bitNodeOptions.disableCorporation) {
+        message = "You disabled Corporation via BitNode advanced options.";
+      } else if (currentNodeMults.CorporationSoftcap < 0.15) {
+        message = `Corporation is disabled in BN-${Player.bitNodeN}.`;
+      }
+      break;
+    case 6:
+    case 7:
+      if (Player.bitNodeOptions.disableBladeburner) {
+        message = "You disabled Bladeburner via BitNode advanced options.";
+      } else if (currentNodeMults.BladeburnerRank === 0) {
+        message = `Bladeburner is disabled in BN-${Player.bitNodeN}.`;
+      }
+      break;
+  }
+  if (!message && knowAboutBitverse()) {
+    message = `You should check out ${
+      bitNode !== 6 ? `BN-${bitNode}` : `BN-6 or BN-7`
+    } to uncover more details about this place.`;
+  }
+  if (!message) {
+    return <></>;
+  }
+  return (
+    <>
+      <br />
+      <br />
+      <Typography>{message}</Typography>
+    </>
+  );
 }
 
 export function SpecialLocation(props: SpecialLocationProps): React.ReactElement {
@@ -100,7 +141,7 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
 
   function renderBladeburner(): React.ReactElement {
     if (!Player.canAccessBladeburner() || currentNodeMults.BladeburnerRank === 0) {
-      return <></>;
+      return SpecialLocationHint(6);
     }
     const text = Player.bladeburner ? "Enter Bladeburner Headquarters" : "Apply to Bladeburner Division";
     return (
@@ -156,12 +197,13 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
 
   function CreateCorporation(): React.ReactElement {
     const [open, setOpen] = useState(false);
-    if (!Player.canAccessCorporation()) {
+    if (!Player.canAccessCorporation() || currentNodeMults.CorporationSoftcap < 0.15) {
       return (
         <>
           <Typography>
             <i>A businessman is yelling at a clerk. You should come back later.</i>
           </Typography>
+          {SpecialLocationHint(3)}
         </>
       );
     }
@@ -177,7 +219,7 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
 
   function renderGrafting(): React.ReactElement {
     if (!Player.canAccessGrafting()) {
-      return <></>;
+      return SpecialLocationHint(10);
     }
     return (
       <Button onClick={handleGrafting} sx={{ my: 5 }}>
@@ -289,8 +331,10 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
             <br />
             <br />A symbol is carved in the altar.
           </Typography>
+
           <br />
           {symbol}
+          {SpecialLocationHint(13)}
         </>
       );
     }
@@ -325,11 +369,74 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
     );
   }
 
-  function renderGlitch(): React.ReactElement {
+  function RenderGlitch(): React.ReactElement {
+    // If the user stays here for ~25 seconds, silently warp them to The Void.
+    useEffect(() => {
+      let delay = 0;
+      // This is a sum of 25 exponential random variables, which is equivalent
+      // to one Erlang-distributed random variable with mean 25sec and stddev 5sec.
+      for (let i = 0; i < 25; ++i) {
+        delay += -1000 * Math.log(1 - Math.random());
+      }
+      const id = setTimeout(() => Router.toPage(Page.Location, { location: Locations[LocationName.Void] }), delay);
+      return () => clearTimeout(id);
+    });
+
     return (
       <>
         <Typography>
           <CorruptibleText content={"An eerie aura surrounds this area. You feel you should leave."} spoiler={false} />
+        </Typography>
+      </>
+    );
+  }
+
+  function renderShadowedWalkway(): React.ReactElement {
+    function handleDarknetNavigator(): void {
+      if (Player.money < DarknetConstants.DarkscapeNavigatorDiscountedPrice) {
+        dialogBoxCreate(`You don't have enough money to buy ${CompletedProgramName.darkscape}`);
+        return;
+      }
+      Player.loseMoney(DarknetConstants.DarkscapeNavigatorDiscountedPrice, "other");
+      getDarkscapeNavigator();
+      dialogBoxCreate(
+        `You bought ${CompletedProgramName.darkscape} for ${formatMoney(
+          DarknetConstants.DarkscapeNavigatorDiscountedPrice,
+        )}.`,
+      );
+      rerender();
+    }
+    const canBuyDarknetNavigator =
+      Player.money >= DarknetConstants.DarkscapeNavigatorDiscountedPrice && !hasDarknetAccess();
+    return (
+      <>
+        <Typography>
+          <br />
+          <br />
+          The city is dark and quiet. It stretches out below this decrepit walkway, a seemingly endless expanse of
+          decaying concrete and rusted metal.
+          <br />
+          <br />
+          Nearby, an ancient automat sits askew, its screen flickering with static, still covered with ads for the
+          compact disks it sells for credits.
+          <br />
+          <br />
+          On it, a faded sign reads:
+          <br />
+          <br />
+          <i>
+            Resistance, change, & freedom: powered by privacy. Darkscape Navigator is the only way to escape the
+            oppression of the Great Firewall.
+          </i>
+          <br />
+          <br />
+          <br />
+          <Button onClick={handleDarknetNavigator} disabled={!canBuyDarknetNavigator}>
+            Buy {CompletedProgramName.darkscape}{" "}
+            {hasDarknetAccess()
+              ? " - Purchased"
+              : `(${formatMoney(DarknetConstants.DarkscapeNavigatorDiscountedPrice)})`}
+          </Button>
         </Typography>
       </>
     );
@@ -340,7 +447,7 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
       return renderGrafting();
     }
     case LocationName.Sector12CityHall: {
-      return (currentNodeMults.CorporationSoftcap < 0.15 && <></>) || <CreateCorporation />;
+      return <CreateCorporation />;
     }
     case LocationName.Sector12NSA: {
       return renderBladeburner();
@@ -352,7 +459,7 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
       return renderCotMG();
     }
     case LocationName.IshimaGlitch: {
-      return renderGlitch();
+      return <RenderGlitch />;
     }
     case LocationName.NewTokyoArcade: {
       return <ArcadeRoot />;
@@ -367,6 +474,20 @@ export function SpecialLocation(props: SpecialLocationProps): React.ReactElement
           <Button onClick={() => Router.toPage(Page.Go)}>IPvGO Subnet Takeover</Button>
         </>
       );
+    }
+    case LocationName.ChongqingShadowedWalkway: {
+      return renderShadowedWalkway();
+    }
+    case LocationName.Void: {
+      // Reserved for special content such as easter eggs.
+      // Player.giveAchievement() may render a toast while React is rendering this component. This causes a state update
+      // during rendering, which triggers the following React warning: "Cannot update during an existing state
+      // transition (such as within `render`). Render methods should be a pure function of props and state."
+      // Therefore, we defer the call until after the current render completes.
+      setTimeout(() => {
+        Player.giveAchievement("THE_VOID");
+      }, 0);
+      return <></>;
     }
     default:
       console.error(`Location ${props.loc.name} doesn't have any special properties`);

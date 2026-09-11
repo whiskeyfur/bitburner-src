@@ -49,7 +49,7 @@ Both the forecast and the second-order forecast change over time.
 
 A stock's forecast can be viewed after purchasing Four Sigma (4S) Market Data access.
 This lets you see the forecast info on the Stock Market UI.
-If you also purchase access to the 4S Market Data TIX API, then you can view a stock's forecast using the `getStockForecast` function.
+If you also purchase access to the 4S Market Data TIX API, then you can view a stock's forecast using the `stock.getForecast` function.
 
 A stock's second-order forecast is always hidden.
 
@@ -157,7 +157,7 @@ The potency of this effect is based on how effective you are when you work (i.e.
 ## Automating the Stock Market
 
 You can write scripts to perform automatic and algorithmic trading on the Stock Market.
-See [TIX API](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.tix.md) for more details.
+See [Stock API](../../../../../markdown/bitburner.stock.md) for more details.
 
 ## Under the Hood
 

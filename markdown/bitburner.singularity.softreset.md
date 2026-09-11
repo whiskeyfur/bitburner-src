@@ -14,9 +14,39 @@ softReset(cbScript?: string): void;
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  cbScript | string | _(Optional)_ This is a script that will automatically be run after Augmentations are installed (after the reset). This script will be run with no arguments and 1 thread. It must be located on your home computer. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+cbScript
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ This is a script that will automatically be run after the reset. This script will be run with no arguments and 1 thread. It must be located on your home computer.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
@@ -26,5 +56,5 @@ void
 
 RAM cost: 5 GB \* 16/4/1
 
-This function will perform a reset even if you don’t have any augmentation installed.
+Performs the same reset as when you install Augmentations. This can be used even when no Augmentations are queued. Installs any queued Augmentations.
 

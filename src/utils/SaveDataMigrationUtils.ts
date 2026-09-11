@@ -13,14 +13,12 @@
 
 import { Player } from "@player";
 import { AugmentationName, CityName, CodingContractName, LocationName } from "@enums";
-import { AddToAllServers, createUniqueRandomIp, GetAllServers, GetServer, renameServer } from "../Server/AllServers";
+import { GetAllServers } from "../Server/AllServers";
 import { StockMarket } from "../StockMarket/StockMarket";
 import { AwardNFG, v1APIBreak } from "./v1APIBreak";
 import { Settings } from "../Settings/Settings";
 import { defaultMonacoTheme } from "../ScriptEditor/ui/themes";
 import { PlayerOwnedAugmentation } from "../Augmentation/PlayerOwnedAugmentation";
-import { SpecialServers } from "../Server/data/SpecialServers";
-import { safelyCreateUniqueServer } from "../Server/ServerHelpers";
 import { v2APIBreak } from "./v2APIBreak";
 import { Terminal } from "../Terminal";
 import { getRecordValues } from "../Types/Record";
@@ -36,6 +34,10 @@ import type { PositiveInteger } from "../types";
 import { officeInitialCost, officeInitialSize, warehouseInitialCost } from "../Corporation/data/Constants";
 import { load } from "../db";
 import { downloadContentAsFile } from "./FileUtils";
+import { initDarkwebServer } from "../DarkNet/controllers/NetworkGenerator";
+import { Replacer } from "./GenericReviver";
+import { breakingChanges301 } from "./APIBreaks/3.0.1";
+import { breakingChanges302 } from "./APIBreaks/3.0.2";
 
 /** Function for performing a series of defined replacements. See 0.58.0 for usage */
 function convert(code: string, changes: [RegExp, string][]): string {
@@ -90,10 +92,6 @@ export async function evaluateVersionCompatibility(ver: string | number): Promis
       delete anyPlayer.companyPosition;
     }
     if (ver < "0.56.0") {
-      // In older versions, keys of AllServers are IP addresses instead of hostnames.
-      for (const server of GetAllServers()) {
-        renameServer(server.ip, server.hostname);
-      }
       for (const q of anyPlayer.queuedAugmentations) {
         if (q.name === "Graphene BranchiBlades Upgrade") {
           q.name = "Graphene BrachiBlades Upgrade";
@@ -240,22 +238,6 @@ export async function evaluateVersionCompatibility(ver: string | number): Promis
     Player.reapplyAllSourceFiles();
   }
 
-  if (ver < 20) {
-    // Create the darkweb for everyone but it won't be linked
-    const dw = GetServer(SpecialServers.DarkWeb);
-    if (!dw) {
-      const darkweb = safelyCreateUniqueServer({
-        ip: createUniqueRandomIp(),
-        hostname: SpecialServers.DarkWeb,
-        organizationName: "",
-        isConnectedTo: false,
-        adminRights: false,
-        purchasedByPlayer: false,
-        maxRam: 1,
-      });
-      AddToAllServers(darkweb);
-    }
-  }
   if (ver < 21) {
     // 2.0.0 work rework
     AwardNFG(10);
@@ -529,7 +511,10 @@ Error: ${e}`,
     if (!stats || typeof stats !== "object") break v2_60;
     const freshSaveData = getGoSave();
     Object.assign(freshSaveData.stats, stats);
-    loadGo(JSON.stringify(freshSaveData));
+    // As of this writing (version 52), Go data does not include any classes
+    // so it does not need a replacer. However, the generic replacer is used
+    // so that this case isn't missed if this ever changes.
+    loadGo(JSON.stringify(freshSaveData, Replacer));
   }
   if (ver < 39) {
     showAPIBreaks("2.6.1", breakInfos261);
@@ -551,14 +536,19 @@ Error: ${e}`,
     }
     if (found) Terminal.error("Filenames with whitespace found and corrected, see console for details.");
   }
+  // Migrate save data related to the breaking changes in the first beta of v3.0.0.
   if (ver < 44) {
     try {
       /**
        * Backup pre-v3 save data. We must use the data in IndexedDB instead of calling saveObject.getSaveData().
        * getSaveData() returns data in v3 format, so the exported data will not be importable in pre-v3.
        */
-      const saveData = await load();
-      downloadContentAsFile(saveData, `bitburnerSave_backup_2.8.1_${Math.round(Player.lastUpdate / 1000)}.json.gz`);
+      const saveData = await load(true);
+      if (saveData !== undefined) {
+        downloadContentAsFile(saveData, `bitburnerSave_backup_2.8.1_${Math.round(Player.lastUpdate / 1000)}.json.gz`);
+      } else {
+        console.error("Cannot back up save data before migrating to v3. The save data is somehow undefined.");
+      }
     } catch (error) {
       console.error("Cannot export pre-v3 save data", error);
     }
@@ -637,6 +627,33 @@ Error: ${e}`,
       }
       unlocks.delete("VeChain");
     }
+  }
+  if (ver < 45) {
+    initDarkwebServer();
+  }
+  if (ver < 47) {
+    for (const faction of [...Player.factions, ...Player.factionInvitations]) {
+      Player.factionRumors.add(faction);
+    }
+    for (const person of [Player, ...Player.sleeves]) {
+      person.persistentIntelligenceData.exp = person.exp.intelligence;
+      person.overrideIntelligence();
+    }
+  }
+  if (ver < 49) {
+    if (Player.sourceFileLvl(5) === 0 && Player.bitNodeN !== 5) {
+      for (const person of [Player, ...Player.sleeves]) {
+        person.persistentIntelligenceData.exp = 0;
+        person.exp.intelligence = 0;
+        person.skills.intelligence = 0;
+      }
+    }
     showAPIBreaks("3.0.0", breakingChanges300);
+  }
+  if (ver < 51) {
+    showAPIBreaks("3.0.1", breakingChanges301);
+  }
+  if (ver < 52) {
+    showAPIBreaks("3.0.2", breakingChanges302);
   }
 }

@@ -9,15 +9,60 @@ List files on a server.
 **Signature:**
 
 ```typescript
-ls(host: string, substring?: string): string[];
+ls(host?: string, substring?: string): string[];
 ```
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  host | string | Hostname/IP of the target server. |
-|  substring | string | _(Optional)_ A substring to search for in the filename. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+host
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ Hostname/IP of the target server. Defaults to current server if not provided.
+
+
+</td></tr>
+<tr><td>
+
+substring
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ A substring to search for in the filename.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 

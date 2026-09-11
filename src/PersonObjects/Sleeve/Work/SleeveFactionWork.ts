@@ -1,7 +1,8 @@
 import { Player } from "@player";
-import { Generic_fromJSON, Generic_toJSON, IReviverValue, constructorsForReviver } from "../../../utils/JSONReviver";
+import { Generic_fromJSON, type IReviverValue } from "../../../utils/JSONReviver";
+import { makeSerializable } from "../../../utils/GenericReviver";
 import { Sleeve } from "../Sleeve";
-import { applySleeveGains, SleeveWorkClass, SleeveWorkType } from "./Work";
+import { applySleeveGains, SleeveBaseWork, SleeveWorkType } from "./Work";
 import { FactionName, FactionWorkType } from "@enums";
 import { Factions } from "../../../Faction/Factions";
 import { calculateFactionExp, calculateFactionRep } from "../../../Work/Formulas";
@@ -14,10 +15,10 @@ interface SleeveFactionWorkParams {
   factionName: FactionName;
 }
 
-export const isSleeveFactionWork = (w: SleeveWorkClass | null): w is SleeveFactionWork =>
+export const isSleeveFactionWork = (w: SleeveBaseWork | null): w is SleeveFactionWork =>
   w !== null && w.type === SleeveWorkType.FACTION;
 
-export class SleeveFactionWork extends SleeveWorkClass {
+export class SleeveFactionWork extends SleeveBaseWork {
   type: SleeveWorkType.FACTION = SleeveWorkType.FACTION;
   factionWorkType: FactionWorkType;
   factionName: FactionName;
@@ -56,23 +57,19 @@ export class SleeveFactionWork extends SleeveWorkClass {
       type: SleeveWorkType.FACTION as const,
       factionWorkType: this.factionWorkType,
       factionName: this.factionName,
+      nextCompletion: this.nextCompletion,
     };
   }
 
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("SleeveFactionWork", this);
-  }
-
-  /** Initializes a FactionWork object from a JSON save state. */
-  static fromJSON(value: IReviverValue): SleeveFactionWork {
-    const factionWork = Generic_fromJSON(SleeveFactionWork, value.data);
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): SleeveFactionWork {
+    const factionWork = Generic_fromJSON(SleeveFactionWork, value.data, SleeveFactionWork.includedKeys);
     factionWork.factionWorkType = getEnumHelper("FactionWorkType").getMember(factionWork.factionWorkType, {
       alwaysMatch: true,
     });
     factionWork.factionName = getEnumHelper("FactionName").getMember(factionWork.factionName, { alwaysMatch: true });
     return factionWork;
   }
-}
 
-constructorsForReviver.SleeveFactionWork = SleeveFactionWork;
+  static includedKeys = makeSerializable("SleeveFactionWork", SleeveFactionWork);
+}

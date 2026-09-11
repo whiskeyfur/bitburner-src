@@ -14,9 +14,37 @@ getHashUpgradeLevel(upgName: HacknetServerHashUpgrade): number;
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  upgName | [HacknetServerHashUpgrade](./bitburner.hacknetserverhashupgrade.md) |  |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+upgName
+
+
+</td><td>
+
+[HacknetServerHashUpgrade](./bitburner.hacknetserverhashupgrade.md)
+
+
+</td><td>
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
@@ -26,7 +54,7 @@ Level of the upgrade.
 
 ## Remarks
 
-RAM cost: 0 GB
+RAM cost: 0.5 GB
 
 This function is only applicable for Hacknet Servers (the upgraded version of a Hacknet Node).
 

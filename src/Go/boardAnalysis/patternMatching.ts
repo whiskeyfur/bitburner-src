@@ -3,7 +3,7 @@ import type { Board, PointState } from "../Types";
 
 import { GoColor } from "@enums";
 import { findEffectiveLibertiesOfNewMove } from "./boardAnalysis";
-import { sleep } from "./goAI";
+import { sleep } from "../../utils/Utility";
 
 export const threeByThreePatterns = [
   // 3x3 piece patterns; X,O are color pieces; x,o are any state except the opposite color piece;
@@ -172,8 +172,7 @@ function expandAllThreeByThreePatterns() {
     ...threeByThreePatterns.map(rotate90Degrees).map(rotate90Degrees),
     ...threeByThreePatterns.map(rotate90Degrees).map(rotate90Degrees).map(rotate90Degrees),
   ];
-  const mirroredPatterns = [...rotatedPatterns, ...rotatedPatterns.map(verticalMirror)];
-  return [...mirroredPatterns, ...mirroredPatterns.map(horizontalMirror)];
+  return [...rotatedPatterns, ...rotatedPatterns.map(verticalMirror)];
 }
 
 function rotate90Degrees(pattern: string[]) {
@@ -186,12 +185,4 @@ function rotate90Degrees(pattern: string[]) {
 
 function verticalMirror(pattern: string[]) {
   return [pattern[2], pattern[1], pattern[0]];
-}
-
-function horizontalMirror(pattern: string[]) {
-  return [
-    pattern[0].split("").reverse().join(),
-    pattern[1].split("").reverse().join(),
-    pattern[2].split("").reverse().join(),
-  ];
 }

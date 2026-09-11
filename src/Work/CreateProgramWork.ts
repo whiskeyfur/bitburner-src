@@ -1,15 +1,15 @@
 import { dialogBoxCreate } from "../ui/React/DialogBox";
-import { constructorsForReviver, Generic_toJSON, Generic_fromJSON, IReviverValue } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
 import { CompletedProgramName } from "@enums";
 import { CONSTANTS } from "../Constants";
 import { Player } from "@player";
 import { Programs } from "../Programs/Programs";
-import { Work, WorkType } from "./Work";
+import { PlayerBaseWork, WorkType } from "./Work";
 import { Program } from "../Programs/Program";
 import { calculateIntelligenceBonus } from "../PersonObjects/formulas/intelligence";
 import { asProgramFilePath } from "../Paths/ProgramFilePath";
 
-export const isCreateProgramWork = (w: Work | null): w is CreateProgramWork =>
+export const isCreateProgramWork = (w: PlayerBaseWork | null): w is CreateProgramWork =>
   w !== null && w.type === WorkType.CREATE_PROGRAM;
 
 interface CreateProgramWorkParams {
@@ -17,7 +17,7 @@ interface CreateProgramWorkParams {
   singularity: boolean;
 }
 
-export class CreateProgramWork extends Work {
+export class CreateProgramWork extends PlayerBaseWork {
   programName: CompletedProgramName;
   // amount of effective work completed on the program (time boosted by skills).
   unitCompleted: number;
@@ -94,6 +94,7 @@ export class CreateProgramWork extends Work {
       const incompleteName = asProgramFilePath(programName + "-" + perc + "%-INC");
       Player.getHomeComputer().pushProgram(incompleteName);
     }
+    this.resolveNextCompletion();
   }
 
   APICopy() {
@@ -101,18 +102,9 @@ export class CreateProgramWork extends Work {
       type: WorkType.CREATE_PROGRAM as const,
       cyclesWorked: this.cyclesWorked,
       programName: this.programName,
+      nextCompletion: this.nextCompletion,
     };
   }
 
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("CreateProgramWork", this);
-  }
-
-  /** Initializes a CreateProgramWork object from a JSON save state. */
-  static fromJSON(value: IReviverValue): CreateProgramWork {
-    return Generic_fromJSON(CreateProgramWork, value.data);
-  }
+  static includedKeys = makeSerializable("CreateProgramWork", CreateProgramWork);
 }
-
-constructorsForReviver.CreateProgramWork = CreateProgramWork;

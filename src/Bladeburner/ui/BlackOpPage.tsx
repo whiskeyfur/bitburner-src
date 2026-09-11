@@ -7,21 +7,22 @@ import { BlackOpElem } from "./BlackOpElem";
 import { Router } from "../../ui/GameRoot";
 import { Page } from "../../ui/Router";
 import { CorruptibleText } from "../../ui/React/CorruptibleText";
-import { blackOpsArray } from "../data/BlackOperations";
+import { numberOfBlackOperations } from "../data/BlackOperations";
 import { finishBitNode } from "../../BitNode/BitNodeUtils";
+import { Player } from "@player";
 
 interface BlackOpPageProps {
   bladeburner: Bladeburner;
 }
 
 export function BlackOpPage({ bladeburner }: BlackOpPageProps): React.ReactElement {
-  const blackOperations = blackOpsArray.slice(0, bladeburner.numBlackOpsComplete + 1).reverse();
+  const blackOperations = bladeburner.blackOperationArray.slice(0, bladeburner.numBlackOpsComplete + 1).reverse();
 
   return (
     <>
       <Typography>
-        Black Operations (Black Ops) are special, one-time covert operations. Each Black Op must be unlocked
-        successively by completing the one before it.
+        Black Operations (Black Ops) are special, one-time covert operations. Each Black Op is unlocked by completing
+        the one before it.
         <br />
         <br />
         <b>
@@ -30,27 +31,29 @@ export function BlackOpPage({ bladeburner }: BlackOpPageProps): React.ReactEleme
         </b>
         <br />
         <br />
-        Like normal operations, you may use a team for Black Ops. Failing a black op will incur heavy HP and rank
-        losses. Black Ops success significantly affected by combat stats. Many Ops benefit from Hacking skill.
+        Like normal operations, you may use a team for Black Ops. Failing a Black Op will incur heavy HP and rank
+        losses. Black Ops success is significantly affected by combat stats. Many Ops benefit from Hacking skill.
         Unaffected by Charisma.
       </Typography>
-      {bladeburner.numBlackOpsComplete >= blackOpsArray.length ? (
+
+      {bladeburner.numBlackOpsComplete >= numberOfBlackOperations && (
         <Button
           sx={{ my: 1, p: 1 }}
           onClick={() => {
+            if (!Player.bladeburner || Player.bladeburner.numBlackOpsComplete < numberOfBlackOperations) {
+              return;
+            }
             finishBitNode();
             Router.toPage(Page.BitVerse, { flume: false, quick: false });
           }}
         >
           <CorruptibleText content="Destroy w0r1d_d43m0n" spoiler={false}></CorruptibleText>
         </Button>
-      ) : (
-        <>
-          {blackOperations.map((blackOperation) => (
-            <BlackOpElem key={blackOperation.name} bladeburner={bladeburner} action={blackOperation} />
-          ))}
-        </>
       )}
+
+      {blackOperations.map((blackOperation) => (
+        <BlackOpElem key={blackOperation.name} bladeburner={bladeburner} action={blackOperation} />
+      ))}
     </>
   );
 }

@@ -1,5 +1,6 @@
 import React from "react";
-import { constructorsForReviver, Generic_toJSON, Generic_fromJSON, IReviverValue } from "../utils/JSONReviver";
+import { type IReviverValue, Generic_fromJSON } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
 import { CONSTANTS } from "../Constants";
 import { formatExp } from "../ui/formatNumber";
 import { ClassType, GymType, LocationName, UniversityClassType } from "@enums";
@@ -8,7 +9,7 @@ import { Money } from "../ui/React/Money";
 import { convertTimeMsToTimeElapsedString } from "../utils/StringHelperFunctions";
 import { Player } from "@player";
 import { calculateClassEarnings as calculateClassEarningsRate } from "./Formulas";
-import { Work, WorkType } from "./Work";
+import { PlayerBaseWork, WorkType } from "./Work";
 import { applyWorkStats, newWorkStats, sumWorkStats, WorkStats } from "./WorkStats";
 import { findEnumMember } from "../utils/helpers/enum";
 import { isMember } from "../utils/EnumHelper";
@@ -78,8 +79,8 @@ interface ClassWorkParams {
   singularity: boolean;
 }
 
-export const isClassWork = (w: Work | null): w is ClassWork => w !== null && w.type === WorkType.CLASS;
-export class ClassWork extends Work {
+export const isClassWork = (w: PlayerBaseWork | null): w is ClassWork => w !== null && w.type === WorkType.CLASS;
+export class ClassWork extends PlayerBaseWork {
   classType: ClassType;
   location: LocationName;
   earnings = newWorkStats();
@@ -110,7 +111,7 @@ export class ClassWork extends Work {
     return false;
   }
 
-  finish(cancelled: boolean, suppressDialog?: boolean): void {
+  finish(__cancelled: boolean, suppressDialog?: boolean): void {
     if (!this.singularity && !suppressDialog) {
       dialogBoxCreate(
         <>
@@ -129,6 +130,7 @@ export class ClassWork extends Work {
         </>,
       );
     }
+    this.resolveNextCompletion();
   }
 
   APICopy() {
@@ -137,23 +139,19 @@ export class ClassWork extends Work {
       cyclesWorked: this.cyclesWorked,
       classType: this.classType,
       location: this.location,
+      nextCompletion: this.nextCompletion,
     };
   }
 
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("ClassWork", this);
-  }
-
-  /** Initializes a ClassWork object from a JSON save state. */
-  static fromJSON(value: IReviverValue): ClassWork {
-    const classWork = Generic_fromJSON(ClassWork, value.data);
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): ClassWork {
+    const classWork = Generic_fromJSON(ClassWork, value.data, ClassWork.includedKeys);
     classWork.classType =
       findEnumMember(UniversityClassType, classWork.classType) ??
       findEnumMember(GymType, classWork.classType) ??
       UniversityClassType.computerScience;
     return classWork;
   }
-}
 
-constructorsForReviver.ClassWork = ClassWork;
+  static includedKeys = makeSerializable("ClassWork", ClassWork);
+}

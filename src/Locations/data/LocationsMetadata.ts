@@ -453,4 +453,14 @@ export const LocationsMetadata: IConstructorParams[] = [
     name: LocationName.IshimaGlitch,
     types: [LocationType.Special],
   },
+  {
+    city: CityName.Chongqing,
+    name: LocationName.ChongqingShadowedWalkway,
+    types: [LocationType.Special],
+  },
+  {
+    city: null,
+    name: LocationName.Void,
+    types: [LocationType.Special],
+  },
 ];

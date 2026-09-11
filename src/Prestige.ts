@@ -11,10 +11,10 @@ import { Player } from "@player";
 import { recentScripts } from "./Netscript/RecentScripts";
 import { resetPidCounter } from "./Netscript/Pid";
 
-import { GetServer, AddToAllServers, initForeignServers, prestigeAllServers } from "./Server/AllServers";
-import { prestigeHomeComputer } from "./Server/ServerHelpers";
+import { GetServer, AddToAllServers, prestigeAllServers } from "./Server/AllServers";
+import { initForeignServers, prestigeHomeComputer } from "./Server/ServerHelpers";
 import { SpecialServers } from "./Server/data/SpecialServers";
-import { deleteStockMarket, initStockMarket } from "./StockMarket/StockMarket";
+import { canAccessStockMarket, deleteStockMarket, initStockMarket } from "./StockMarket/StockMarket";
 import { Terminal } from "./Terminal";
 
 import { dialogBoxCreate } from "./ui/React/DialogBox";
@@ -30,7 +30,10 @@ import { calculateExp } from "./PersonObjects/formulas/skill";
 import { currentNodeMults } from "./BitNode/BitNodeMultipliers";
 import { canAccessBitNodeFeature } from "./BitNode/BitNodeUtils";
 import { pendingUIShareJobIds } from "./NetworkShare/Share";
+import { getDarkscapeNavigator } from "./DarkNet/effects/effects";
 import { CodingContractEventEmitter } from "./CodingContract/CodingContractEventEmitter";
+import { showLiterature } from "./Literature/LiteratureHelpers";
+import { prestigeDarknetState } from "./DarkNet/models/DarknetState";
 
 const BitNode8StartingMoney = 250e6;
 function delayedDialog(message: string, canBeDismissedEasily = true) {
@@ -55,14 +58,11 @@ export function prestigeAugmentation(): void {
 
   initBitNodeMultipliers();
 
-  // Maintain invites to factions with the 'keepOnInstall' flag, and rumors about others
+  // Maintain invites to factions with the 'keepOnInstall' flag
   const maintainInvites = new Set<FactionName>();
-  const maintainRumors = new Set<FactionName>();
   for (const facName of [...Player.factions, ...Player.factionInvitations]) {
     if (Factions[facName].getInfo().keep) {
       maintainInvites.add(facName);
-    } else {
-      maintainRumors.add(facName);
     }
   }
 
@@ -72,6 +72,8 @@ export function prestigeAugmentation(): void {
   const homeComp = Player.getHomeComputer();
   // Delete all servers except home computer
   prestigeAllServers();
+
+  prestigeDarknetState(false);
 
   // Reset home computer (only the programs) and add to AllServers
   AddToAllServers(homeComp);
@@ -95,15 +97,16 @@ export function prestigeAugmentation(): void {
   // Re-create foreign servers
   initForeignServers(Player.getHomeComputer());
 
+  if (canAccessBitNodeFeature(15)) {
+    getDarkscapeNavigator();
+  }
+
   // Gain favor for Companies and Factions
   for (const company of Object.values(Companies)) company.prestigeAugmentation();
   for (const faction of Object.values(Factions)) faction.prestigeAugmentation();
 
   // Stop a Terminal action if there is one.
-  if (Terminal.action !== null) {
-    Terminal.finishAction(true);
-  }
-  Terminal.clear();
+  Terminal.prestige();
   LogBoxClearEvents.emit();
 
   // Close coding contract modal
@@ -161,8 +164,10 @@ export function prestigeAugmentation(): void {
   }
 
   // Reset Stock market
-  if (Player.hasWseAccount) {
+  if (canAccessStockMarket()) {
     initStockMarket();
+  } else {
+    deleteStockMarket();
   }
 
   // Red Pill
@@ -184,9 +189,8 @@ export function prestigeAugmentation(): void {
     }
   }
 
-  // Hear rumors after all invites/bans
-  for (const factionName of maintainRumors) Player.receiveRumor(factionName);
-
+  // clear recent scripts
+  recentScripts.splice(0);
   resetPidCounter();
   ProgramsSeen.clear();
   InvitationsSeen.clear();
@@ -207,10 +211,7 @@ export function prestigeSourceFile(isFlume: boolean): void {
   const homeComp = Player.getHomeComputer();
 
   // Stop a Terminal action if there is one.
-  if (Terminal.action !== null) {
-    Terminal.finishAction(true);
-  }
-  Terminal.clear();
+  Terminal.prestige();
   LogBoxClearEvents.emit();
 
   // Close coding contract modal
@@ -218,6 +219,8 @@ export function prestigeSourceFile(isFlume: boolean): void {
 
   // Delete all servers except home computer
   prestigeAllServers(); // Must be done before initForeignServers()
+
+  prestigeDarknetState(true);
 
   // Reset home computer (only the programs) and add to AllServers
   AddToAllServers(homeComp);
@@ -232,6 +235,10 @@ export function prestigeSourceFile(isFlume: boolean): void {
   // Re-create foreign servers
   initForeignServers(Player.getHomeComputer());
 
+  if (canAccessBitNodeFeature(15)) {
+    getDarkscapeNavigator();
+  }
+
   if (Player.activeSourceFileLvl(9) >= 2) {
     homeComp.setMaxRam(128);
   } else if (Player.activeSourceFileLvl(1) > 0) {
@@ -244,11 +251,6 @@ export function prestigeSourceFile(isFlume: boolean): void {
   // Reset favor for Companies and Factions
   for (const company of Object.values(Companies)) company.prestigeSourceFile();
   for (const faction of Object.values(Factions)) faction.prestigeSourceFile();
-
-  // Stop a Terminal action if there is one
-  if (Terminal.action !== null) {
-    Terminal.finishAction(true);
-  }
 
   // Give levels of NeuroFluxGovernor for Source-File 12. Must be done here before Augmentations are recalculated
   if (Player.activeSourceFileLvl(12) > 0) {
@@ -291,7 +293,7 @@ export function prestigeSourceFile(isFlume: boolean): void {
   if (Player.bitNodeN === 8) {
     Player.money = BitNode8StartingMoney;
   }
-  if (Player.bitNodeN === 8 || Player.activeSourceFileLvl(8) > 0) {
+  if (canAccessBitNodeFeature(8)) {
     Player.hasWseAccount = true;
     Player.hasTixApiAccess = true;
   }
@@ -305,7 +307,7 @@ export function prestigeSourceFile(isFlume: boolean): void {
   }
 
   // BitNode 12: The Recursion
-  if (Player.bitNodeN === 12 && Player.activeSourceFileLvl(12) > 100) {
+  if (Player.bitNodeN === 12 && Player.sourceFileLvl(12) > 100) {
     delayedDialog("Saynt_Garmo is watching you");
   }
 
@@ -314,7 +316,7 @@ export function prestigeSourceFile(isFlume: boolean): void {
   }
 
   // Reset Stock market, gang, and corporation
-  if (Player.hasWseAccount) {
+  if (canAccessStockMarket()) {
     initStockMarket();
   } else {
     deleteStockMarket();
@@ -340,6 +342,13 @@ export function prestigeSourceFile(isFlume: boolean): void {
     Player.money = CONSTANTS.TravelCost;
   }
   staneksGift.prestigeSourceFile();
+
+  if (Player.bitNodeN === 15 && !homeComp.messages.includes(LiteratureName.DarknetHandbook)) {
+    homeComp.messages.push(LiteratureName.DarknetHandbook);
+  }
+  if (Player.bitNodeN === 15 && Player.sourceFileLvl(15) === 0) {
+    showLiterature(LiteratureName.DarknetHandbook);
+  }
 
   // Gain int exp
   if (Player.activeSourceFileLvl(5) !== 0 && !isFlume) {

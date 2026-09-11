@@ -9,18 +9,64 @@ Get the metadata of a file.
 **Signature:**
 
 ```typescript
-getFileMetadata(filename: string): FileMetadata;
+getFileMetadata(filename: string, host?: string): FileMetadata | null;
 ```
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  filename | string | Name of the file to read the metadata from. It must be a text file (.txt, .json) or a script (.js, .jsx, .ts, .tsx). |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+filename
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+Name of the file to read the metadata from. It must be a text file (.txt, .json, .css) or a script (.js, .jsx, .ts, .tsx).
+
+
+</td></tr>
+<tr><td>
+
+host
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ Hostname/IP of the target server. Optional. Defaults to current server if not provided.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
-[FileMetadata](./bitburner.filemetadata.md)
+[FileMetadata](./bitburner.filemetadata.md) \| null
 
 The metadata of the file.
 
@@ -28,5 +74,5 @@ The metadata of the file.
 
 RAM cost: 0 GB
 
-This function returns the metadata associated with the specified file.
+This function returns the metadata associated with the specified file. If the file does not exist or the server is offline, returns null. It will throw if the path or host is malformed.
 

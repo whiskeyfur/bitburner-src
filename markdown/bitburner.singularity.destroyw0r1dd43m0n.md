@@ -9,16 +9,76 @@ Destroy the w0r1d\_d43m0n and move on to the next BN.
 **Signature:**
 
 ```typescript
-destroyW0r1dD43m0n(nextBN: number, callbackScript?: string, bitNodeOptions?: BitNodeOptions): void;
+destroyW0r1dD43m0n(nextBN?: number, callbackScript?: string, bitNodeOptions?: BitNodeOptions): void;
 ```
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  nextBN | number | BN number to jump to |
-|  callbackScript | string | _(Optional)_ Name of the script to launch in the next BN. |
-|  bitNodeOptions | [BitNodeOptions](./bitburner.bitnodeoptions.md) | _(Optional)_ BitNode options for the next BN. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+nextBN
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ BN number to jump to. Passing undefined leaves you on the BitVerse screen.
+
+
+</td></tr>
+<tr><td>
+
+callbackScript
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ Name of the script to launch in the next BN.
+
+
+</td></tr>
+<tr><td>
+
+bitNodeOptions
+
+
+</td><td>
+
+[BitNodeOptions](./bitburner.bitnodeoptions.md)
+
+
+</td><td>
+
+_(Optional)_ BitNode options for the next BN.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
@@ -29,4 +89,6 @@ void
 RAM cost: 32 GB \* 16/4/1
 
 You must have the special augment installed and the required hacking level OR Completed the final black op.
+
+If you do not want to move on to the next BN and instead stay on the BitVerse screen, you can set nextBN to undefined. Note that with the hacking route, using [installBackdoor](./bitburner.singularity.installbackdoor.md) is a cheaper way to do this.
 

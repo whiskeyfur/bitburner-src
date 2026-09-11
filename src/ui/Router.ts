@@ -3,6 +3,8 @@ import type { TextFilePath } from "../Paths/TextFilePath";
 import type { Faction } from "../Faction/Faction";
 import type { Location } from "../Locations/Location";
 import type { SaveData } from "../types";
+import type { OptionsTabName } from "../GameOptions/ui/GameOptionsRoot";
+import type { ReactElement } from "@nsdefs";
 import { ComplexPage, SimplePage } from "./Enums";
 
 // Using the same name as both type and object to mimic enum-like behavior.
@@ -12,37 +14,43 @@ export const Page = { ...SimplePage, ...ComplexPage };
 
 export type PageContext<T extends Page> = T extends ComplexPage.BitVerse
   ? { flume: boolean; quick: boolean }
-  : T extends ComplexPage.Infiltration
-  ? { location: Location }
   : T extends ComplexPage.Faction
   ? { faction: Faction }
   : T extends ComplexPage.FactionAugmentations
   ? { faction: Faction }
   : T extends ComplexPage.ScriptEditor
-  ? { files?: Map<ScriptFilePath | TextFilePath, string>; options?: ScriptEditorRouteOptions }
+  ? { files: Map<ScriptFilePath | TextFilePath, string>; options: ScriptEditorRouteOptions }
   : T extends ComplexPage.Location
   ? { location: Location }
   : T extends ComplexPage.ImportSave
   ? { saveData: SaveData; automatic?: boolean }
   : T extends ComplexPage.Documentation
   ? { docPage?: string }
+  : T extends ComplexPage.Options
+  ? { tab?: OptionsTabName }
+  : T extends ComplexPage.CustomPage
+  ? { content: ReactElement }
+  : T extends ComplexPage.ActiveScripts
+  ? { serverName?: string }
   : never;
 
 export type PageWithContext =
   | ({ page: ComplexPage.BitVerse } & PageContext<ComplexPage.BitVerse>)
-  | ({ page: ComplexPage.Infiltration } & PageContext<ComplexPage.Infiltration>)
   | ({ page: ComplexPage.Faction } & PageContext<ComplexPage.Faction>)
   | ({ page: ComplexPage.FactionAugmentations } & PageContext<ComplexPage.FactionAugmentations>)
   | ({ page: ComplexPage.ScriptEditor } & PageContext<ComplexPage.ScriptEditor>)
   | ({ page: ComplexPage.Location } & PageContext<ComplexPage.Location>)
   | ({ page: ComplexPage.ImportSave } & PageContext<ComplexPage.ImportSave>)
   | ({ page: ComplexPage.Documentation } & PageContext<ComplexPage.Documentation>)
+  | ({ page: ComplexPage.Options } & PageContext<ComplexPage.Options>)
+  | ({ page: ComplexPage.CustomPage } & PageContext<ComplexPage.CustomPage>)
+  | ({ page: ComplexPage.ActiveScripts } & PageContext<ComplexPage.ActiveScripts>)
   | { page: ComplexPage.LoadingScreen }
   | { page: SimplePage };
 
 export interface ScriptEditorRouteOptions {
   vim: boolean;
-  hostname?: string;
+  hostname: string;
 }
 
 /** The router keeps track of player navigation/routing within the game. */

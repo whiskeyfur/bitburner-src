@@ -14,17 +14,49 @@ getAugmentationBasePrice(augName: string): number;
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  augName | string | Name of Augmentation. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+augName
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+Name of Augmentation.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
 number
 
-Base price of the augmentation, before price multiplier.
+Base price of the augmentation, before the player's price multiplier.
 
 ## Remarks
 
 RAM cost: 2.5 GB \* 16/4/1
+
+This excludes the player's price multiplier, but does include the relevant BitNode multiplier (for all augs that aren't part of Shadows of Anarchy, which doesn't use BitNode multipliers).
 

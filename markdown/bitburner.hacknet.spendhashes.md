@@ -14,11 +14,71 @@ spendHashes(upgName: HacknetServerHashUpgrade, upgTarget?: string, count?: numbe
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  upgName | [HacknetServerHashUpgrade](./bitburner.hacknetserverhashupgrade.md) | Name of the upgrade using hash of Hacknet Server. |
-|  upgTarget | string | _(Optional)_ Object to which upgrade applies. Required for certain upgrades. |
-|  count | number | _(Optional)_ Number of upgrades to buy at once. Must be a non-negative integer. Defaults to 1 if not specified. For compatibility reasons, upgTarget must be specified, even if it is not used, in order to specify count. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+upgName
+
+
+</td><td>
+
+[HacknetServerHashUpgrade](./bitburner.hacknetserverhashupgrade.md)
+
+
+</td><td>
+
+Name of the upgrade using hash of Hacknet Server.
+
+
+</td></tr>
+<tr><td>
+
+upgTarget
+
+
+</td><td>
+
+string
+
+
+</td><td>
+
+_(Optional)_ Object to which upgrade applies. Required for certain upgrades.
+
+
+</td></tr>
+<tr><td>
+
+count
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ Number of upgrades to buy at once. Must be a non-negative integer. Defaults to 1 if not specified. For compatibility reasons, upgTarget must be specified, even if it is not used, in order to specify count.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
@@ -28,7 +88,7 @@ True if the upgrade is successfully purchased, and false otherwise.
 
 ## Remarks
 
-RAM cost: 0 GB
+RAM cost: 0.5 GB
 
 This function is only applicable for Hacknet Servers (the upgraded version of a Hacknet Node).
 

@@ -1,5 +1,6 @@
 import { CodingContractName } from "@enums";
-import { removeBracketsFromArrayString, type CodingContractTypes } from "../ContractTypes";
+import { parseArrayString, type CodingContractTypes } from "../ContractTypes";
+import { exceptionAlert } from "../../utils/helpers/exceptionAlert";
 import { getRandomIntInclusive } from "../../utils/helpers/getRandomIntInclusive";
 
 export const spiralizeMatrix: Pick<CodingContractTypes, CodingContractName.SpiralizeMatrix> = {
@@ -55,7 +56,7 @@ export const spiralizeMatrix: Pick<CodingContractTypes, CodingContractName.Spira
 
       return matrix;
     },
-    solver: (data, answer) => {
+    getAnswer: (data) => {
       const spiral: number[] = [];
       const m: number = data.length;
       const n: number = data[0].length;
@@ -107,13 +108,31 @@ export const spiralizeMatrix: Pick<CodingContractTypes, CodingContractName.Spira
         }
       }
 
+      return spiral;
+    },
+    solver: (data, answer) => {
+      const spiral = spiralizeMatrix[CodingContractName.SpiralizeMatrix].getAnswer(data);
+
+      if (spiral === null) {
+        exceptionAlert(
+          new Error(
+            `Unexpected null when calculating the answer for ${
+              CodingContractName.SpiralizeMatrix
+            } contract. Data: ${JSON.stringify(data)}`,
+          ),
+        );
+        return false;
+      }
+
       return spiral.length === answer.length && spiral.every((n, i) => n === answer[i]);
     },
     convertAnswer: (ans) => {
-      const sanitized = removeBracketsFromArrayString(ans).replace(/\s/g, "").split(",");
-      return sanitized.map((s) => parseInt(s));
+      const parsedAnswer = parseArrayString(ans);
+      if (!spiralizeMatrix[CodingContractName.SpiralizeMatrix].validateAnswer(parsedAnswer)) {
+        return null;
+      }
+      return parsedAnswer;
     },
-    validateAnswer: (ans): ans is number[] =>
-      typeof ans === "object" && Array.isArray(ans) && ans.every((n) => typeof n === "number"),
+    validateAnswer: (ans): ans is number[] => Array.isArray(ans) && ans.every((n) => typeof n === "number"),
   },
 };

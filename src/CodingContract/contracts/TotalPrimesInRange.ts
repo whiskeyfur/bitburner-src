@@ -1,10 +1,10 @@
 import { CodingContractName } from "@enums";
-import { CodingContractTypes } from "../ContractTypes";
 import { getRandomIntInclusive } from "../../utils/helpers/getRandomIntInclusive";
+import type { CodingContractTypes } from "../ContractTypes";
 
 export const totalPrimesInRange: Pick<CodingContractTypes, CodingContractName.TotalPrimesInRange> = {
   [CodingContractName.TotalPrimesInRange]: {
-    desc: (data: number[]): string => {
+    desc: (data: [number, number]): string => {
       return [
         `You are given two random non-negative integers: ${data}.\n`,
         `The first will be up to 5000000, and the second will be at most 1000000 greater.\n`,
@@ -14,14 +14,14 @@ export const totalPrimesInRange: Pick<CodingContractTypes, CodingContractName.To
       ].join(" ");
     },
     difficulty: 2,
-    generate: (): number[] => {
+    generate: (): [number, number] => {
       //The total range of values across all contracts, and minimum range for each contract is intended to make a pre-generated array of primes impractical,
       //and naive approaches for checking every value for primality slower but possible if well written.
       const low = getRandomIntInclusive(0, 5e6);
       const high = low + getRandomIntInclusive(1e5, 1e6);
       return [low, high];
     },
-    solver: (data, answer) => {
+    getAnswer: (data) => {
       /** Simple implementation of Sieve of Eratosthenes
        * https://en.wikipedia.org/wiki/Sieve_of_Eratosthenes*/
       function simpleSieve(max: number): number[] {
@@ -76,7 +76,11 @@ export const totalPrimesInRange: Pick<CodingContractTypes, CodingContractName.To
 
       //We trust the player generated the appropriate list of primes (or is more accurate at guessing primes than Gauss was at this range) and as such they deserve the reward.
       const primes = primeSieve(data[0], data[1]);
-      return answer === primes;
+
+      return primes;
+    },
+    solver: (data, answer) => {
+      return totalPrimesInRange[CodingContractName.TotalPrimesInRange].getAnswer(data) === answer;
     },
     convertAnswer: (ans) => parseInt(ans, 10),
     validateAnswer: (ans): ans is number => typeof ans === "number",

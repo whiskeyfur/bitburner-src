@@ -15,12 +15,12 @@ export function canUseBinaryFormat(): boolean {
   return "CompressionStream" in globalThis;
 }
 
-async function compress(dataString: string): Promise<Uint8Array> {
+async function compress(dataString: string): Promise<Uint8Array<ArrayBuffer>> {
   const compressedReadableStream = new Blob([dataString]).stream().pipeThrough(new CompressionStream("gzip"));
   return new Uint8Array(await new Response(compressedReadableStream).arrayBuffer());
 }
 
-async function decompress(binaryData: Uint8Array): Promise<string> {
+async function decompress(binaryData: Uint8Array<ArrayBuffer>): Promise<string> {
   const decompressedReadableStream = new Blob([binaryData]).stream().pipeThrough(new DecompressionStream("gzip"));
   const reader = decompressedReadableStream.pipeThrough(new TextDecoderStream("utf-8", { fatal: true })).getReader();
   let result = "";
@@ -35,6 +35,19 @@ async function decompress(binaryData: Uint8Array): Promise<string> {
 }
 
 export async function encodeJsonSaveString(jsonSaveString: string): Promise<SaveData> {
+  if (jsonSaveString == null) {
+    throw new InvalidSaveData(`jsonSaveString is ${jsonSaveString}`);
+  }
+  if (typeof jsonSaveString !== "string") {
+    console.error(jsonSaveString);
+    throw new InvalidSaveData(`Type of jsonSaveString is ${typeof jsonSaveString}`);
+  }
+  if (!jsonSaveString.startsWith(`{"ctor":"BitburnerSaveObject"`)) {
+    console.error(jsonSaveString);
+    throw new InvalidSaveData(
+      `Invalid jsonSaveString (doesn't seem to contain a BitburnerSaveObject): ${jsonSaveString.slice(0, 100)}`,
+    );
+  }
   // Fallback to the base64 format if player's browser does not support Compression Streams API.
   if (canUseBinaryFormat()) {
     return await compress(jsonSaveString);

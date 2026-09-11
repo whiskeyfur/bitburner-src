@@ -119,7 +119,12 @@ export function formatPercent(n: number, fractionalDigits = 2, multStart = 1e6) 
   return getFormatter(fractionalDigits, percentFormats, { style: "percent" }).format(n);
 }
 
-export function formatNumber(n: number, fractionalDigits = 3, suffixStart = 1000, isInteger = false) {
+export function formatNumber(
+  n: number,
+  fractionalDigits = Settings.fractionalDigits,
+  suffixStart = 1000,
+  isInteger = false,
+) {
   // NaN does not get formatted
   if (Number.isNaN(n)) return "NaN";
   const nAbs = Math.abs(n);
@@ -188,16 +193,29 @@ export const formatInt = (n: number) => formatNumber(n, 3, 1000, true);
 export const formatSleeveMemory = formatInt;
 export const formatShares = formatInt;
 
-/** Display an integer up to 999,999 before collapsing to suffixed form with 3 fractional digits */
-export const formatHp = (n: number) => formatNumber(n, 3, 1e6, true);
+/**
+ * Format a number using basicFormatter for values below 1e6, and a suffixed form with up to 3 fractional digits for
+ * values at or above 1e6. This uses formatNumber, so check that function for nuanced details.
+ *
+ * Values in the range (0, 0.001) are displayed in exponential notation.
+ */
+export const formatHp = (n: number) => {
+  if (n > 0 && n < 0.001) {
+    return formatExponential(n);
+  }
+  return formatNumber(n, 3, 1e6, true);
+};
 export const formatThreads = formatHp;
 
 /** Display an integer up to 999,999,999 before collapsing to suffixed form with 3 fractional digits */
 export const formatSkill = (n: number) => formatNumber(n, 3, 1e9, true);
 
-/** Display standard money formatting, including the preceding $. */
+/** Display standard money formatting, including the currency symbol. */
 export const formatMoney = (n: number, useExponentialFormForSmallValue = false): string => {
-  return `$${!useExponentialFormForSmallValue || n === 0 || n >= 0.001 ? formatNumber(n) : n.toExponential(3)}`;
+  const value = !useExponentialFormForSmallValue || n === 0 || n >= 0.001 ? formatNumber(n) : n.toExponential(3);
+  return Settings.CurrencySymbolAfterValue
+    ? `${value}${Settings.CurrencySymbol}`
+    : `${Settings.CurrencySymbol}${value}`;
 };
 
 /** Display a decimal number with increased precision (5 fractional digits) */

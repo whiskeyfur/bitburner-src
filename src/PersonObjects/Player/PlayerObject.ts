@@ -2,11 +2,12 @@ import type { BitNodeOptions, Player as IPlayer } from "@nsdefs";
 import type { PlayerAchievement } from "../../Achievements/Achievements";
 import type { Bladeburner } from "../../Bladeburner/Bladeburner";
 import type { Corporation } from "../../Corporation/Corporation";
+import type { Infiltration } from "../../Infiltration/Infiltration";
 import type { Exploit } from "../../Exploits/Exploit";
 import type { Gang } from "../../Gang/Gang";
 import type { HacknetNode } from "../../Hacknet/HacknetNode";
 import type { Sleeve } from "../Sleeve/Sleeve";
-import type { Work } from "../../Work/Work";
+import type { PlayerBaseWork } from "../../Work/Work";
 
 import * as augmentationMethods from "./PlayerObjectAugmentationMethods";
 import * as bladeburnerMethods from "./PlayerObjectBladeburnerMethods";
@@ -20,7 +21,8 @@ import { setPlayer } from "@player";
 import { CompanyName, FactionName, JobName, LocationName } from "@enums";
 import { HashManager } from "../../Hacknet/HashManager";
 import { type MoneySource, MoneySourceTracker } from "../../utils/MoneySourceTracker";
-import { constructorsForReviver, Generic_toJSON, Generic_fromJSON, IReviverValue } from "../../utils/JSONReviver";
+import { Generic_fromJSON, type IReviverValue } from "../../utils/JSONReviver";
+import { makeSerializable } from "../../utils/GenericReviver";
 import { JSONMap, JSONSet } from "../../Types/Jsonable";
 import { cyrb53 } from "../../utils/HashUtils";
 import { getRandomIntInclusive } from "../../utils/helpers/getRandomIntInclusive";
@@ -36,6 +38,7 @@ export class PlayerObject extends Person implements IPlayer {
   corporation: Corporation | null = null;
   gang: Gang | null = null;
   bladeburner: Bladeburner | null = null;
+  infiltration: Infiltration | null = null;
   currentServer = "";
   factions: FactionName[] = [];
   factionInvitations: FactionName[] = [];
@@ -70,7 +73,7 @@ export class PlayerObject extends Person implements IPlayer {
   lastSave = 0;
   totalPlaytime = 0;
 
-  currentWork: Work | null = null;
+  currentWork: PlayerBaseWork | null = null;
   focus = false;
 
   entropy = 0;
@@ -149,6 +152,7 @@ export class PlayerObject extends Person implements IPlayer {
   activeSourceFileLvl = generalMethods.activeSourceFileLvl;
   applyEntropy = augmentationMethods.applyEntropy;
   focusPenalty = generalMethods.focusPenalty;
+  initInfiltration = generalMethods.initInfiltration;
 
   constructor() {
     super();
@@ -176,14 +180,9 @@ export class PlayerObject extends Person implements IPlayer {
     return this.sleeves.filter((s) => isSleeveSupportWork(s.currentWork));
   }
 
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("PlayerObject", this);
-  }
-
-  /** Initializes a PlayerObject object from a JSON save state. */
-  static fromJSON(value: IReviverValue): PlayerObject {
-    const player = Generic_fromJSON(PlayerObject, value.data);
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): PlayerObject {
+    const player = Generic_fromJSON(PlayerObject, value.data, PlayerObject.includedKeys);
     // Any statistics that could be infinite would be serialized as null (JSON.stringify(Infinity) is "null")
     player.hp = { current: player.hp?.current ?? 10, max: player.hp?.max ?? 10 };
     player.money ??= 0;
@@ -207,10 +206,17 @@ export class PlayerObject extends Person implements IPlayer {
         delete player.jobs[loadedCompanyName as CompanyName];
       }
     }
+    // A bug created ill-formed UTF-16 darknet hostnames that caused the in-game editor to crash. Player.currentServer
+    // may point to one of these invalid hostnames. This code migrates the invalid hostnames and protects against
+    // similar issues in the future.
+    if (!player.currentServer.isWellFormed()) {
+      player.currentServer = player.currentServer.toWellFormed();
+    }
     return player;
   }
+
+  // For the time being, infiltration is not part of the save.
+  static includedKeys = makeSerializable("PlayerObject", PlayerObject, { removedKeys: ["infiltration"] });
 }
 
 setPlayer(new PlayerObject());
-
-constructorsForReviver.PlayerObject = PlayerObject;

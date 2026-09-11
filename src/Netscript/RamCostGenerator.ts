@@ -35,18 +35,13 @@ export const RamCostConstants = {
   GetServerUsedRam: 0.05,
   FileExists: 0.1,
   IsRunning: 0.1,
-  HacknetNodes: 4.0,
+  Hacknet: 0.5,
   HNUpgLevel: 0.4,
   HNUpgRam: 0.6,
   HNUpgCore: 0.8,
   GetStock: 2.0,
   BuySellStock: 2.5,
-  GetPurchaseServer: 0.25,
-  PurchaseServer: 2.25,
-  GetPurchasedServerLimit: 0.05,
-  GetPurchasedServerMaxRam: 0.05,
   Round: 0.05,
-  ReadWrite: 1.0,
   ArbScript: 1.0,
   GetScript: 0.1,
   GetRunningScript: 0.3,
@@ -81,7 +76,7 @@ export const RamCostConstants = {
   InfiltrationCalculateRewards: 2.5,
   InfiltrationGetInfiltrations: 15,
 
-  CycleTiming: 1,
+  CycleTiming: 0,
 } as const;
 
 function SF4Cost(cost: number): () => number {
@@ -102,27 +97,27 @@ function SF4Cost(cost: number): () => number {
 
 // Hacknet API
 const hacknet = {
-  numNodes: 0,
-  purchaseNode: 0,
-  getPurchaseNodeCost: 0,
-  getNodeStats: 0,
-  upgradeLevel: 0,
-  upgradeRam: 0,
-  upgradeCore: 0,
-  upgradeCache: 0,
-  getLevelUpgradeCost: 0,
-  getRamUpgradeCost: 0,
-  getCoreUpgradeCost: 0,
-  getCacheUpgradeCost: 0,
-  numHashes: 0,
-  hashCost: 0,
-  spendHashes: 0,
-  maxNumNodes: 0,
-  hashCapacity: 0,
-  getHashUpgrades: 0,
-  getHashUpgradeLevel: 0,
-  getStudyMult: 0,
-  getTrainingMult: 0,
+  numNodes: RamCostConstants.Hacknet,
+  purchaseNode: RamCostConstants.Hacknet,
+  getPurchaseNodeCost: RamCostConstants.Hacknet,
+  getNodeStats: RamCostConstants.Hacknet,
+  upgradeLevel: RamCostConstants.Hacknet,
+  upgradeRam: RamCostConstants.Hacknet,
+  upgradeCore: RamCostConstants.Hacknet,
+  upgradeCache: RamCostConstants.Hacknet,
+  getLevelUpgradeCost: RamCostConstants.Hacknet,
+  getRamUpgradeCost: RamCostConstants.Hacknet,
+  getCoreUpgradeCost: RamCostConstants.Hacknet,
+  getCacheUpgradeCost: RamCostConstants.Hacknet,
+  numHashes: RamCostConstants.Hacknet,
+  hashCost: RamCostConstants.Hacknet,
+  spendHashes: RamCostConstants.Hacknet,
+  maxNumNodes: RamCostConstants.Hacknet,
+  hashCapacity: RamCostConstants.Hacknet,
+  getHashUpgrades: RamCostConstants.Hacknet,
+  getHashUpgradeLevel: RamCostConstants.Hacknet,
+  getStudyMult: RamCostConstants.Hacknet,
+  getTrainingMult: RamCostConstants.Hacknet,
 } as const;
 
 // Stock API
@@ -220,10 +215,51 @@ const singularity = {
   getSaveData: SF4Cost(RamCostConstants.SingularityFn1 / 2),
   exportGame: SF4Cost(RamCostConstants.SingularityFn1 / 2),
   exportGameBonus: SF4Cost(RamCostConstants.SingularityFn1 / 4),
+  hasExportGameBonus: SF4Cost(RamCostConstants.SingularityFn1 / 4),
   b1tflum3: SF4Cost(16),
   destroyW0r1dD43m0n: SF4Cost(32),
   getCurrentWork: SF4Cost(0.5),
   getUnlockedAchievements: SF4Cost(RamCostConstants.SingularityFn3),
+} as const;
+
+const cloud = {
+  getServerLimit: 0.05,
+  getRamLimit: 0.05,
+  getServerCost: 0.25,
+  getServerUpgradeCost: 0.1,
+  getServerNames: 1.05,
+  upgradeServer: 0.25,
+  renameServer: 0,
+  purchaseServer: 2.25,
+  deleteServer: 2.25,
+} as const;
+
+// Darknet API
+const dnet = {
+  authenticate: 0.4,
+  connectToSession: 0.05,
+  freezeServer: 2,
+  heartbleed: 0.6,
+  openCache: 2,
+  probe: RamCostConstants.Scan,
+  setStasisLink: 12,
+  getStasisLinkLimit: 0,
+  getStasisLinkedServers: 0,
+  getServer: 2,
+  getServerDetails: RamCostConstants.GetServer,
+  induceServerMigration: 4,
+  unleashStormSeed: 0.1,
+  isDarknetServer: RamCostConstants.GetServer,
+  memoryReallocation: 1,
+  getBlockedRam: 0,
+  getDepth: RamCostConstants.GetServer,
+  promoteStock: 2,
+  phishingAttack: 2,
+  getDarknetInstability: 0,
+  nextMutation: RamCostConstants.CycleTiming,
+  getServerRequiredCharismaLevel: RamCostConstants.GetServer,
+  labreport: 0,
+  labradar: 0,
 } as const;
 
 const format = {
@@ -231,16 +267,17 @@ const format = {
   ram: 0,
   percent: 0,
   time: 0,
+  money: 0,
 } as const;
 
 // Gang API
 const gang = {
   createGang: RamCostConstants.GangApiBase / 4,
-  inGang: RamCostConstants.GangApiBase / 4,
+  inGang: 0,
   getMemberNames: RamCostConstants.GangApiBase / 4,
   renameMember: 0,
   getGangInformation: RamCostConstants.GangApiBase / 2,
-  getOtherGangInformation: RamCostConstants.GangApiBase / 2,
+  getAllGangInformation: RamCostConstants.GangApiBase / 2,
   getMemberInformation: RamCostConstants.GangApiBase / 2,
   canRecruitMember: RamCostConstants.GangApiBase / 4,
   getRecruitsAvailable: RamCostConstants.GangApiBase / 4,
@@ -298,7 +335,7 @@ const go = {
 
 // Bladeburner API
 const bladeburner = {
-  inBladeburner: RamCostConstants.BladeburnerApiBase / 4,
+  inBladeburner: 0,
   getContractNames: 0,
   getOperationNames: 0,
   getBlackOpNames: 0,
@@ -313,6 +350,8 @@ const bladeburner = {
   getActionCurrentTime: RamCostConstants.BladeburnerApiBase,
   getActionEstimatedSuccessChance: RamCostConstants.BladeburnerApiBase,
   getActionRepGain: RamCostConstants.BladeburnerApiBase,
+  getActionRankGain: RamCostConstants.BladeburnerApiBase,
+  getActionRankLoss: RamCostConstants.BladeburnerApiBase,
   getActionCountRemaining: RamCostConstants.BladeburnerApiBase,
   getActionMaxLevel: RamCostConstants.BladeburnerApiBase,
   getActionCurrentLevel: RamCostConstants.BladeburnerApiBase,
@@ -376,6 +415,10 @@ const sleeve = {
   setToBladeburnerAction: RamCostConstants.SleeveBase,
   getSleeveAugmentationPrice: RamCostConstants.SleeveBase,
   getSleeveAugmentationRepReq: RamCostConstants.SleeveBase,
+  purchaseSleeve: RamCostConstants.SleeveBase,
+  upgradeMemory: RamCostConstants.SleeveBase,
+  getSleeveCost: RamCostConstants.SleeveBase,
+  getMemoryUpgradeCost: RamCostConstants.SleeveBase,
 } as const;
 
 // Stanek API
@@ -402,6 +445,7 @@ const ui = {
   closeTail: 0,
   setTailTitle: 0,
   setTailFontSize: 0,
+  setTailMinimized: 0,
   getTheme: 0,
   setTheme: 0,
   resetTheme: 0,
@@ -410,7 +454,13 @@ const ui = {
   resetStyles: 0,
   getGameInfo: 0,
   clearTerminal: 0,
+  openCodeEditor: 0,
   windowSize: 0,
+  alias: 0,
+  unalias: 0,
+  getAllAliases: 0,
+  renderPage: 0,
+  createConnectLink: 5,
 } as const;
 
 // Grafting API
@@ -419,7 +469,7 @@ const grafting = {
   getAugmentationGraftTime: 3.75,
   getGraftableAugmentations: 5,
   graftAugmentation: 7.5,
-  waitForOngoingGrafting: 1,
+  waitForOngoingGrafting: 0,
 } as const;
 
 const corporation = {
@@ -500,8 +550,10 @@ export const RamCosts: RamCostTree<NSFull> = {
   stock,
   singularity,
   format,
+  cloud,
   gang,
   go,
+  dnet,
   bladeburner,
   infiltration,
   codingcontract,
@@ -577,15 +629,6 @@ export const RamCosts: RamCostTree<NSFull> = {
   serverExists: RamCostConstants.GetServer,
   fileExists: RamCostConstants.FileExists,
   isRunning: RamCostConstants.IsRunning,
-  getPurchasedServerLimit: RamCostConstants.GetPurchasedServerLimit,
-  getPurchasedServerMaxRam: RamCostConstants.GetPurchasedServerMaxRam,
-  getPurchasedServerCost: RamCostConstants.GetPurchaseServer,
-  getPurchasedServerUpgradeCost: 0.1,
-  getPurchasedServers: 1.05,
-  upgradePurchasedServer: 0.25,
-  renamePurchasedServer: 0,
-  purchaseServer: RamCostConstants.PurchaseServer,
-  deleteServer: RamCostConstants.PurchaseServer,
   write: 0,
   tryWritePort: 0,
   read: 0,
@@ -595,8 +638,10 @@ export const RamCosts: RamCostTree<NSFull> = {
   writePort: 0,
   nextPortWrite: 0,
   readPort: 0,
+  isFullPort: 0,
+  isEmptyPort: 0,
   getPortHandle: 0,
-  rm: RamCostConstants.ReadWrite,
+  rm: RamCostConstants.Scp,
   scriptRunning: RamCostConstants.ArbScript,
   scriptKill: RamCostConstants.ArbScript,
   getScriptName: 0,
@@ -657,6 +702,7 @@ export const RamCosts: RamCostTree<NSFull> = {
       hackTime: 0,
       growTime: 0,
       weakenTime: 0,
+      weakenEffect: 0,
     },
     hacknetNodes: {
       moneyGainRate: 0,
@@ -694,6 +740,11 @@ export const RamCosts: RamCostTree<NSFull> = {
     },
     bladeburner: {
       skillMaxUpgradeCount: 0,
+    },
+    dnet: {
+      getAuthenticateTime: 0,
+      getHeartbleedTime: 0,
+      getExpectedRamBlockRemoved: 0,
     },
   },
 } as const;

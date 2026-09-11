@@ -3,12 +3,13 @@ import { BaseServer } from "./BaseServer";
 
 import { currentNodeMults } from "../BitNode/BitNodeMultipliers";
 
-import { createRandomString } from "../utils/helpers/createRandomString";
+import { getRandomAlphanumericString } from "../utils/StringHelperFunctions";
 import { createRandomIp } from "../utils/IPAddress";
-import { IReviverValue, constructorsForReviver } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
+import type { IReviverValue } from "../utils/JSONReviver";
 import { IPAddress } from "../Types/strings";
 
-export interface IConstructorParams {
+export interface StandardServerConstructorParams {
   adminRights?: boolean;
   hackDifficulty?: number;
   hostname: string;
@@ -56,12 +57,12 @@ export class Server extends BaseServer {
   // be increased using the grow() Netscript function
   serverGrowth = 1;
 
-  constructor(params: IConstructorParams = { hostname: "", ip: createRandomIp() }) {
+  constructor(params: StandardServerConstructorParams = { hostname: "", ip: createRandomIp() }) {
     super(params);
 
     // "hacknet-node-X" hostnames are reserved for Hacknet Servers
     if (this.hostname.startsWith("hacknet-node-") || this.hostname.startsWith("hacknet-server-")) {
-      this.hostname = createRandomString(10);
+      this.hostname = getRandomAlphanumericString(10);
     }
 
     this.purchasedByPlayer = params.purchasedByPlayer != null ? params.purchasedByPlayer : false;
@@ -69,7 +70,7 @@ export class Server extends BaseServer {
     //RAM, CPU speed and Scripts
     this.maxRam = params.maxRam != null ? params.maxRam : 0; //GB
 
-    /* Hacking information (only valid for "foreign" aka non-purchased servers) */
+    /* Hacking information (only valid for "foreign" aka non-owned servers) */
     this.requiredHackingSkill = params.requiredHackingSkill != null ? params.requiredHackingSkill : 1;
     const baseMoney = params.moneyAvailable ?? 0;
     this.moneyAvailable = baseMoney * currentNodeMults.ServerStartingMoney;
@@ -145,16 +146,17 @@ export class Server extends BaseServer {
     this.capDifficulty();
   }
 
-  /** Serialize the current object to a JSON save state */
-  toJSON(): IReviverValue {
-    return this.toJSONBase("Server", includedKeys);
+  /** Custom save handling */
+  jsonReplacer(): IReviverValue {
+    return this.toJSONBase("Server", Server.includedKeys);
   }
 
-  // Initializes a Server Object from a JSON save state
-  static fromJSON(value: IReviverValue): Server {
-    return BaseServer.fromJSONBase(value, Server, includedKeys);
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): Server {
+    return BaseServer.fromJSONBase(value, Server, Server.includedKeys);
   }
+
+  static includedKeys = BaseServer.getIncludedKeys(Server);
 }
-const includedKeys = BaseServer.getIncludedKeys(Server);
 
-constructorsForReviver.Server = Server;
+makeSerializable("Server", Server);

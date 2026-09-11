@@ -21,7 +21,7 @@ export const SpoilerKeyBindingTypes = [
 export const GoToPageKeyBindingTypes = [
   SimplePage.Terminal,
   ComplexPage.ScriptEditor,
-  SimplePage.ActiveScripts,
+  ComplexPage.ActiveScripts,
   SimplePage.CreateProgram,
   SimplePage.Stats,
   SimplePage.Factions,
@@ -32,10 +32,11 @@ export const GoToPageKeyBindingTypes = [
   SimplePage.Job,
   SimplePage.StockMarket,
   SimplePage.Go,
+  SimplePage.DarkNet,
   SimplePage.Milestones,
   ComplexPage.Documentation,
   SimplePage.Achievements,
-  SimplePage.Options,
+  ComplexPage.Options,
   ...SpoilerKeyBindingTypes,
 ] as const;
 
@@ -83,7 +84,7 @@ export const DefaultKeyBindings: Record<KeyBindingType, [KeyCombination | null, 
     },
     null,
   ],
-  [SimplePage.ActiveScripts]: [
+  [ComplexPage.ActiveScripts]: [
     {
       control: false,
       alt: true,
@@ -199,6 +200,7 @@ export const DefaultKeyBindings: Record<KeyBindingType, [KeyCombination | null, 
     null,
   ],
   [SimplePage.Go]: [null, null],
+  [SimplePage.DarkNet]: [null, null],
   [SimplePage.Milestones]: [null, null],
   [ComplexPage.Documentation]: [
     {
@@ -211,7 +213,7 @@ export const DefaultKeyBindings: Record<KeyBindingType, [KeyCombination | null, 
     null,
   ],
   [SimplePage.Achievements]: [null, null],
-  [SimplePage.Options]: [
+  [ComplexPage.Options]: [
     {
       control: false,
       alt: true,

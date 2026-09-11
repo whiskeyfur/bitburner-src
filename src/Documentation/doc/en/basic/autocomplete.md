@@ -29,21 +29,21 @@ Running this script from the terminal like `run script.js` or `./script.js` and 
 
 ## AutocompleteData
 
-To make this feature more useful, an [AutocompleteData](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.autocompletedata.md) object is provided to the autocomplete function that holds information commonly passed as arguments to scripts, such as server names and filenames.
+To make this feature more useful, an [AutocompleteData](../../../../../markdown/bitburner.autocompletedata.md) object is provided to the autocomplete function that holds information commonly passed as arguments to scripts, such as server names and filenames.
 
 AutocompleteData is an object with the following properties;
 
 ```javascript
   {
-    command:    // the command being run, as seen on the terminal.
-    enums:      // the ns.enums object with various in-game strings.
-    filename:   // the name of the script file containing the autocomplete function.
-    hostname:   // the name of the host server the script would be running on.
-    processes:  // list of all processes running on the current server.
-    servers:    // list of all servers in the game. Some servers are hidden until you satisfy their requirements. This array does not contain those servers if you do not satisfy their requirements.
-    txts:       // list of all text files on the current server.
-    scripts:    // list of all scripts on the current server.
-    flags:      // the same flags function as passed with ns. Calling this function adds all the flags as autocomplete arguments.
+    command:    // The command being run, as seen on the terminal.
+    enums:      // The ns.enums object with various in-game strings.
+    filename:   // The name of the script file containing the autocomplete function.
+    hostname:   // The name of the host server the script would be running on.
+    processes:  // List of all processes running on the current server.
+    servers:    // List of all servers in the game. Some servers are hidden until you satisfy their requirements. This array does not contain those servers if you do not satisfy their requirements.
+    txts:       // List of all text files on the current server.
+    scripts:    // List of all scripts on the current server.
+    flags:      // A function similar to ns.flags(). Calling this function adds all the flags as autocomplete arguments.
   }
 ```
 
@@ -89,6 +89,35 @@ export function autocomplete(data, args) {
 ```
 
 In that example typing `run script.js` and pressing tab would initially suggest every server for autocomplete. Then if "n00dles" is added to the arguments and tab is pressed again, "n00dles" would no longer be suggested in subsequent autocomplete calls.
+
+## data.flags
+
+This is a function that works nearly identically to `ns.flags()`. The only difference is that it allows unknown options. For example:
+
+```js
+export function autocomplete(data, args) {
+  const parsedFlags = data.flags([["foo", true]]);
+  return [];
+}
+
+/** @param {NS} ns */
+export async function main(ns) {
+  const parsedFlags = ns.flags([["foo", true]]);
+}
+```
+
+If you type `run a.js --f` in the terminal and press tab, `parsedFlags` in `autocomplete` is `{_: ["--f"], foo: true}`.
+
+- `f` is not defined in the schema, so it's added to `_`.
+- The command does not specify `foo`, so `foo` is set to the default value.
+
+If you type `run a.js --f` in the terminal and press enter, an error will be thrown:
+
+```
+ArgError: unknown or unexpected option: --f
+```
+
+This is because `f` is not defined in the schema, and `ns.flags` does not allow unknown options.
 
 # Notes
 

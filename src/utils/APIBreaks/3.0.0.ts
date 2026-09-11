@@ -318,7 +318,7 @@ export const breakingChanges300: VersionBreakingChange = {
         "- ns.getServerMaxMoney\n" +
         "- ns.getServerGrowth\n" +
         "- ns.getServerNumPortsRequired\n" +
-        "- ns.deleteServer\n" +
+        "- ns.cloud.deleteServer\n" +
         "- ns.getHackTime\n" +
         "- ns.getGrowTime\n" +
         "- ns.getWeakenTime\n",
@@ -382,6 +382,296 @@ export const breakingChanges300: VersionBreakingChange = {
         `- "ATX1070 Superbike" was renamed to "${convertV2GangEquipmentNames("ATX1070 Superbike")}".\n` +
         `- "Mercedes-Benz S9001" was renamed to "${convertV2GangEquipmentNames("Mercedes-Benz S9001")}".\n` +
         `- "White Ferrari" was renamed to "${convertV2GangEquipmentNames("White Ferrari")}".\n`,
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [{ name: "purchase4SMarketData" }],
+      info:
+        "You have to purchase a WSE account before purchasing 4S Market Data UI access via ns.stock.purchase4SMarketData().\n" +
+        "Note that this change does not affect 4S Market Data TIX API access (ns.stock.purchase4SMarketDataTixApi()).",
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [
+        {
+          name: "ns.getPurchasedServerCost",
+          migration: { searchValue: "ns.getPurchasedServerCost", replaceValue: "ns.cloud.getServerCost" },
+        },
+        {
+          name: "ns.purchaseServer",
+          migration: { searchValue: "ns.purchaseServer", replaceValue: "ns.cloud.purchaseServer" },
+        },
+        {
+          name: "ns.getPurchasedServerUpgradeCost",
+          migration: {
+            searchValue: "ns.getPurchasedServerUpgradeCost",
+            replaceValue: "ns.cloud.getServerUpgradeCost",
+          },
+        },
+        {
+          name: "ns.upgradePurchasedServer",
+          migration: { searchValue: "ns.upgradePurchasedServer", replaceValue: "ns.cloud.upgradeServer" },
+        },
+        {
+          name: "ns.renamePurchasedServer",
+          migration: { searchValue: "ns.renamePurchasedServer", replaceValue: "ns.cloud.renameServer" },
+        },
+        {
+          name: "ns.deleteServer",
+          migration: { searchValue: "ns.deleteServer", replaceValue: "ns.cloud.deleteServer" },
+        },
+        {
+          name: "ns.getPurchasedServers",
+          migration: { searchValue: "ns.getPurchasedServers", replaceValue: "ns.cloud.getServerNames" },
+        },
+        {
+          name: "ns.getPurchasedServerLimit",
+          migration: { searchValue: "ns.getPurchasedServerLimit", replaceValue: "ns.cloud.getServerLimit" },
+        },
+        {
+          name: "ns.getPurchasedServerMaxRam",
+          migration: { searchValue: "ns.getPurchasedServerMaxRam", replaceValue: "ns.cloud.getRamLimit" },
+        },
+      ],
+      info:
+        "The cloud server (purchased server) functions have been moved to their own interface, ns.cloud.\n" +
+        '"ns.getPurchasedServerCost()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.getServerCost()"\n\n' +
+        '"ns.purchaseServer()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.purchaseServer()"\n\n' +
+        '"ns.getPurchasedServerUpgradeCost()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.getServerUpgradeCost()"\n\n' +
+        '"ns.upgradePurchasedServer()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.upgradeServer()"\n\n' +
+        '"ns.renamePurchasedServer()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.renameServer()"\n\n' +
+        '"ns.deleteServer()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.deleteServer()"\n\n' +
+        '"ns.getPurchasedServers()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.getServerNames()"\n\n' +
+        '"ns.getPurchasedServerLimit()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.getServerLimit()"\n\n' +
+        '"ns.getPurchasedServerMaxRam()" was removed.\n' +
+        'It has been automatically replaced with "ns.cloud.getRamLimit()"',
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [
+        {
+          name: "ns.getBitNodeMultipliers().PurchasedServerCost",
+          migration: {
+            searchValue: "PurchasedServerCost",
+            replaceValue: "CloudServerCost",
+          },
+        },
+        {
+          name: "ns.getBitNodeMultipliers().PurchasedServerSoftcap",
+          migration: {
+            searchValue: "PurchasedServerSoftcap",
+            replaceValue: "CloudServerSoftcap",
+          },
+        },
+        {
+          name: "ns.getBitNodeMultipliers().PurchasedServerLimit",
+          migration: {
+            searchValue: "PurchasedServerLimit",
+            replaceValue: "CloudServerLimit",
+          },
+        },
+        {
+          name: "ns.getBitNodeMultipliers().PurchasedServerMaxRam",
+          migration: {
+            searchValue: "PurchasedServerMaxRam",
+            replaceValue: "CloudServerMaxRam",
+          },
+        },
+      ],
+      info:
+        "ns.getBitNodeMultipliers() Purchased Server properties have been renamed to CloudServers with the creation of the cloud API.\n" +
+        '"ns.getBitNodeMultipliers().PurchasedServerCost" was removed.\n' +
+        'It has been automatically replaced with "ns.getBitNodeMultipliers().CloudServerCost".\n\n' +
+        '"ns.getBitNodeMultipliers().PurchasedServerSoftcap" was removed.\n' +
+        'It has been automatically replaced with "ns.getBitNodeMultipliers().CloudServerSoftcap".\n\n' +
+        '"ns.getBitNodeMultipliers().PurchasedServerLimit" was removed.\n' +
+        'It has been automatically replaced with "ns.getBitNodeMultipliers().CloudServerLimit".\n\n' +
+        '"ns.getBitNodeMultipliers().PurchasedServerMaxRam" was removed.\n' +
+        'It has been automatically replaced with "ns.getBitNodeMultipliers().CloudServerMaxRam".',
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [
+        {
+          name: "createDummyContract",
+          migration: {
+            searchValue: "createDummyContract",
+            migrator: (line: string) => {
+              for (const match of line.matchAll(/createDummyContract\([^,]*?\)/g)) {
+                line = line.replace(match[0], match[0].slice(0, match[0].length - 1) + `, "home")`);
+              }
+              return line;
+            },
+          },
+        },
+      ],
+      info:
+        "ns.codingcontract.createDummyContract might generate a contract with the same name of another contract.\n" +
+        "This bug was fixed. Now this function will return null and not generate a contract if the randomized contract " +
+        "name is the same as another contract's name.\n\n" +
+        "ns.codingcontract.createDummyContract generated a dummy contract on home. Now you can specify the host that \n" +
+        'gets the generated contract with a new optional parameter. Your code was migrated to specify "home" as the host.',
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [
+        { name: "ns.go.analysis.getValidMoves" },
+        { name: "ns.go.analysis.getChains" },
+        { name: "ns.go.analysis.getLiberties" },
+        { name: "ns.go.analysis.getControlledEmptyNodes" },
+      ],
+      info: "ns.go.analysis methods no longer apply captures to custom board states passed to them, and instead evaluate the given board exactly as-is.",
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [],
+      info:
+        `We added a new feature called Dark Net. The "darkweb" server is a darknet server now.\n` +
+        "Some APIs that require the target host to be a normal server do not work with darkweb. This should not be a \n" +
+        `problem with most scripts. The most potentially affected API is "ns.scan()". Darkweb does not appear in the \n` +
+        `result of this API anymore. If you want to find darknet servers, you need to use "ns.dnet.probe()".`,
+      showWarning: false,
+      doNotSkip: true,
+    },
+    {
+      brokenAPIs: [
+        { name: "ns.hacknet.numNodes" },
+        { name: "ns.hacknet.purchaseNode" },
+        { name: "ns.hacknet.getPurchaseNodeCost" },
+        { name: "ns.hacknet.getNodeStats" },
+        { name: "ns.hacknet.upgradeLevel" },
+        { name: "ns.hacknet.upgradeRam" },
+        { name: "ns.hacknet.upgradeCore" },
+        { name: "ns.hacknet.upgradeCache" },
+        { name: "ns.hacknet.getLevelUpgradeCost" },
+        { name: "ns.hacknet.getRamUpgradeCost" },
+        { name: "ns.hacknet.getCoreUpgradeCost" },
+        { name: "ns.hacknet.getCacheUpgradeCost" },
+        { name: "ns.hacknet.numHashes" },
+        { name: "ns.hacknet.hashCost" },
+        { name: "ns.hacknet.spendHashes" },
+        { name: "ns.hacknet.maxNumNodes" },
+        { name: "ns.hacknet.hashCapacity" },
+        { name: "ns.hacknet.getHashUpgrades" },
+        { name: "ns.hacknet.getHashUpgradeLevel" },
+        { name: "ns.hacknet.getStudyMult" },
+        { name: "ns.hacknet.getTrainingMult" },
+      ],
+      info:
+        "Accessing the hacknet namespace incurred a one-time cost of 4 GB of RAM, and each hacknet API did not incur \n" +
+        "RAM cost. Now the hacknet namespace does not incur RAM cost, but each hacknet API incurs a 0.5GB RAM cost.",
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [{ name: "ns.sleeve.travel" }],
+      info: "ns.sleeve.travel() did not cancel the sleeve's current task. It does now.",
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [{ name: "ns.cloud.purchaseServer" }, { name: "ns.cloud.deleteServer" }],
+      info:
+        "ns.cloud.purchaseServer() and ns.cloud.deleteServer() previously removed whitespace from the provided hostname inconsistently.\n" +
+        "They now use the hostname as provided.",
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [
+        { name: "ns.codingcontract.attempt" },
+
+        { name: "FindAllValidMathExpressions" },
+        { name: "GenerateIPAddresses" },
+        { name: "LargestRectangleInAMatrix" },
+        { name: "MergeOverlappingIntervals" },
+        { name: "Proper2ColoringOfAGraph" },
+        { name: "SanitizeParenthesesInExpression" },
+        { name: "SpiralizeMatrix" },
+
+        { name: "Find All Valid Math Expressions" },
+        { name: "Generate IP Addresses" },
+        { name: "Largest Rectangle in a Matrix" },
+        { name: "Merge Overlapping Intervals" },
+        { name: "Proper 2-Coloring of a Graph" },
+        { name: "Sanitize Parentheses in Expression" },
+        { name: "Spiralize Matrix" },
+      ],
+      info:
+        "If you pass a string to ns.codingcontract.attempt() for contracts that require a non-string answer, the\n" +
+        "game will convert that string to the expected format. This string conversion was inconsistent and had many\n" +
+        `undocumented behaviors. Now the rules are consistent and well-documented. Please check the "Coding Contracts"\n` +
+        "page for more information.\n" +
+        "There are 7 contracts that are affected by this change:\n" +
+        "- Find All Valid Math Expressions\n" +
+        "- Generate IP Addresses\n" +
+        "- Largest Rectangle in a Matrix\n" +
+        "- Merge Overlapping Intervals\n" +
+        "- Proper 2-Coloring of a Graph\n" +
+        "- Sanitize Parentheses in Expression\n" +
+        "- Spiralize Matrix\n" +
+        "Note that this change only affects the string conversion. The solution format of these contracts is an array,\n" +
+        "so if you pass the solution, which is an array, as is, you will not have any problems.\n" +
+        `If your code converts the array to a string, you should check these contracts, especially the "Sanitize\n` +
+        `Parentheses in Expression" contract and others that require a string array.\n` +
+        `- Sanitize Parentheses in Expression: Previously, if you passed an empty string to this contract, it was\n` +
+        "converted to an array containing an empty string. Now, it's converted to an empty array.\n" +
+        `- Read the "General rules", "String conversion", and "Tips" sections on the "Coding Contracts" page carefully.`,
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [
+        {
+          name: "ns.gang.getOtherGangInformation",
+          migration: {
+            searchValue: "getOtherGangInformation",
+            replaceValue: "getAllGangInformation",
+          },
+        },
+      ],
+      info:
+        "ns.gang.getOtherGangInformation() was renamed to ns.gang.getAllGangInformation().\n" +
+        "The function was renamed because it returns information about all gangs, including the player's own gang.",
+      showWarning: false,
+    },
+    {
+      brokenAPIs: [
+        {
+          name: "ns.singularity.getCurrentWork",
+          migration: {
+            searchValue: "completion",
+            /**
+             * "completion" is a common word, so we cannot replace all its instances.
+             * This migrator focuses on the most popular use cases of the "completion" promise. It intentionally does
+             * not support complex cases and `completion.then()`.
+             */
+            migrator: (line: string) => {
+              // Direct chaining from API
+              // Use \b:
+              // - The leading \b applies to getCurrentWork, preventing prefixes like foo_getCurrentWork
+              // - The trailing \b applies to completion, preventing suffixes like completionFoo.
+              // Use \s* to match `getCurrentWork ( ) .completion`
+              line = line.replace(/\b(getCurrentWork\s*\(\s*\))\s*\.completion\b/g, "$1.nextCompletion");
+
+              // Awaited property access (`await task.completion`). This is a bit risky, but it's still a common usage.
+              // [a-zA-Z0-9_$.[\]()?]+ is enough to catch common usages.
+              line = line.replace(/(\bawait\s+[a-zA-Z0-9_$.[\]()?]+)\s*\.completion\b/g, "$1.nextCompletion");
+
+              return line;
+            },
+          },
+        },
+        { name: "ns.sleeve.getTask" },
+      ],
+      info:
+        "Task objects returned from ns.singularity.getCurrentWork() and ns.sleeve.getTask() previously had an optional\n" +
+        `promise property named either "completion" or "nextCompletion", depending on the task.\n` +
+        `Now, these task objects always include this property, and it is consistently named "nextCompletion".`,
       showWarning: false,
     },
   ],

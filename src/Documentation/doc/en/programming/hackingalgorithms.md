@@ -29,7 +29,7 @@ Cons:
 - Limits income generation
 - Extremely [RAM](../basic/ram.md) inefficient
 - Utilizes script online time poorly
-- Risk of over hacking
+- Risk of over-hacking
 - Slow to start producing money
 
 This is the self-contained algorithm implemented in `early-hack-template.js`. Each script is tasked with choosing which function to execute based on the status of the target server.
@@ -111,7 +111,7 @@ This means we must implement a delay into the scripts.
 
 In older versions of the game, this required using `sleep` or `asleep` functions, which have a RAM cost of zero.
 However, due to JavaScript limitations, the delay duration is not millisecond-precise and can cause the functions to finish out of order.
-Instead, the hack, grow and weaken functions have a special [option](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.basichgwoptions.md) called `additionalMsec` that allows more precise delays.
+Instead, the hack, grow and weaken functions have a special [option](../../../../../markdown/bitburner.basichgwoptions.md) called `additionalMsec` that allows more precise delays.
 
 As well as the run time for each function, we also need information on the impact of a hack, grow or weaken thread on the target's security and/or money to optimise the thread ratios between the functions.
 This information can come from `formulas.exe` and use of the `getPlayer` and `getServer` functions, but cheaper functions such as `hackAnalyze`, `hackAnalyzeSecurity`, `getHackTime`, `growthAnalyze` and `growthAnalyzeSecurity` can still be used.
@@ -185,6 +185,23 @@ Shotgun batchers are not very RAM efficient because the scripts take up RAM duri
                             |=Grow===========|
                          |=Weaken=============|
                               |=Weaken=============|
+
+Or:
+
+                  |Hack=|
+    |=Weaken=============|
+         |=Grow===========|
+      |=Weaken=============|
+                      |Hack=|
+        |=Weaken=============|
+             |=Grow===========|
+          |=Weaken=============|
+                          |Hack=|
+            |=Weaken=============|
+                 |=Grow===========|
+              |=Weaken=============|
+
+\*For illustrative purposes only.
 
 By weaving batches between each other, JIT batchers maximise the effectiveness of the RAM at the cost of very precise timing constraints.
 Good communication between worker scripts and the controller is necessary to schedule the next batch at the right time.

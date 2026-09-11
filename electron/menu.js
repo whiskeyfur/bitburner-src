@@ -7,6 +7,30 @@ const storage = require("./storage");
 const store = new Store();
 const { steamworksClient } = require("./steamworksUtils");
 
+/** @import {LogLevel} from "electron-log" */
+/**
+ * @param {*} window
+ * @param {"file-log-level" | "console-log-level"} configKey
+ * @param {LogLevel} logLevel
+ * @returns {*}
+ */
+function createLogLevelMenuItem(window, configKey, logLevel) {
+  return {
+    label: logLevel,
+    type: "checkbox",
+    checked: store.get(configKey) === logLevel,
+    click: () => {
+      if (configKey === "file-log-level") {
+        log.transports.file.level = logLevel;
+      } else {
+        log.transports.console.level = logLevel;
+      }
+      store.set(configKey, logLevel);
+      refreshMenu(window);
+    },
+  };
+}
+
 function getMenu(window) {
   const canZoomIn = utils.getZoomFactor() <= 2;
   const zoomIn = () => {
@@ -204,24 +228,10 @@ function getMenu(window) {
       ],
     },
     {
-      label: "Reloads",
+      label: "View",
       submenu: [
         {
-          label: "Reload",
-          accelerator: "f5",
-          click: () => window.loadFile("index.html"),
-        },
-        {
-          label: "Reload && Kill All Scripts",
-          click: () => utils.reloadAndKill(window, true),
-        },
-      ],
-    },
-    {
-      label: "Fullscreen",
-      submenu: [
-        {
-          label: "Toggle",
+          label: "Fullscreen",
           accelerator: "f9",
           click: (() => {
             let full = false;
@@ -231,11 +241,9 @@ function getMenu(window) {
             };
           })(),
         },
-      ],
-    },
-    {
-      label: "Zoom",
-      submenu: [
+        {
+          type: "separator",
+        },
         {
           label: "Zoom In",
           enabled: canZoomIn,
@@ -278,11 +286,68 @@ function getMenu(window) {
           acceleratorWorksWhenHidden: true,
           click: resetZoom,
         },
+        {
+          type: "separator",
+        },
+        {
+          label: "Autohide top menu",
+          type: "checkbox",
+          checked: storage.isMenuHideEnabled(),
+          click: (menuItem) => {
+            storage.setMenuHideConfig(menuItem.checked);
+            window.setAutoHideMenuBar(menuItem.checked);
+            if (menuItem.checked) {
+              window.setMenuBarVisibility(false);
+            } else {
+              window.setMenuBarVisibility(true);
+            }
+            refreshMenu(window);
+          },
+        },
+      ],
+    },
+    {
+      label: "Reloads",
+      submenu: [
+        {
+          label: "Reload",
+          accelerator: "f5",
+          click: () => window.loadFile("index.html"),
+        },
+        {
+          label: "Reload && Kill All Scripts",
+          click: () => utils.reloadAndKill(window, true),
+        },
       ],
     },
     {
       label: "Debug",
       submenu: [
+        {
+          label: "File Log Level",
+          submenu: [
+            createLogLevelMenuItem(window, "file-log-level", "error"),
+            createLogLevelMenuItem(window, "file-log-level", "warn"),
+            createLogLevelMenuItem(window, "file-log-level", "info"),
+            createLogLevelMenuItem(window, "file-log-level", "verbose"),
+            createLogLevelMenuItem(window, "file-log-level", "debug"),
+            createLogLevelMenuItem(window, "file-log-level", "silly"),
+          ],
+        },
+        {
+          label: "Console Log Level",
+          submenu: [
+            createLogLevelMenuItem(window, "console-log-level", "error"),
+            createLogLevelMenuItem(window, "console-log-level", "warn"),
+            createLogLevelMenuItem(window, "console-log-level", "info"),
+            createLogLevelMenuItem(window, "console-log-level", "verbose"),
+            createLogLevelMenuItem(window, "console-log-level", "debug"),
+            createLogLevelMenuItem(window, "console-log-level", "silly"),
+          ],
+        },
+        {
+          type: "separator",
+        },
         {
           label: "Activate",
           accelerator: "f12",
@@ -292,13 +357,12 @@ function getMenu(window) {
           label: "Delete Steam Cloud Data",
           enabled: steamworksClient !== undefined,
           click: () => {
-            if (steamworksClient.cloud.listFiles().length === 0) {
+            if (steamworksClient === undefined || steamworksClient.cloud.listFiles().length === 0) {
+              log.info("There is no Steam cloud file");
               return;
             }
             try {
-              if (!storage.deleteCloudFile()) {
-                log.warn("Cannot delete Steam Cloud data");
-              }
+              storage.deleteCloudFiles();
             } catch (error) {
               log.error(error);
             }

@@ -5,14 +5,12 @@ export enum ToastVariant {
   INFO = "info",
 }
 
-// This enum doesn't need enum helper support for now
 /**
  * The full-screen page the player is currently be on.
  * These are "simple" pages that don't require any extra parameters to
  * transition to. You can use setPage() with these.
  */
 export enum SimplePage {
-  ActiveScripts = "Active Scripts",
   RecentlyKilledScripts = "Recently Killed Scripts",
   RecentErrors = "Recent Errors",
   Augmentations = "Augmentations",
@@ -20,13 +18,14 @@ export enum SimplePage {
   City = "City",
   Corporation = "Corporation",
   CreateProgram = "Create Program",
+  DarkNet = "Dark Net",
   DevMenu = "Dev",
   Factions = "Factions",
   Gang = "Gang",
   Go = "IPvGO Subnet",
   Hacknet = "Hacknet",
+  Infiltration = "Infiltration",
   Milestones = "Milestones",
-  Options = "Options",
   Grafting = "Grafting",
   Sleeves = "Sleeves",
   Stats = "Stats",
@@ -44,13 +43,18 @@ export enum SimplePage {
 }
 
 export enum ComplexPage {
+  ActiveScripts = "Active Scripts",
   BitVerse = "BitVerse",
-  Infiltration = "Infiltration",
   Faction = "Faction",
   FactionAugmentations = "Faction Augmentations",
   ScriptEditor = "Script Editor",
   Location = "Location",
   ImportSave = "Import Save",
   Documentation = "Documentation",
-  LoadingScreen = "Loading Screen", // Has no PageContext, and thus toPage() cannot be used
+  Options = "Options",
+  CustomPage = "Custom Page",
+  // LoadingScreen is a special state that should never be returned to after the initial game load. To enforce this, it
+  // is constructed as a ComplexPage with no PageContext, and thus toPage() cannot be used (since no overload will fit
+  // it).
+  LoadingScreen = "Loading Screen",
 }

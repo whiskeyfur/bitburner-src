@@ -14,10 +14,55 @@ hashCost(upgName: HacknetServerHashUpgrade, count?: number): number;
 
 ## Parameters
 
-|  Parameter | Type | Description |
-|  --- | --- | --- |
-|  upgName | [HacknetServerHashUpgrade](./bitburner.hacknetserverhashupgrade.md) | Name of the upgrade using hash of Hacknet Server. |
-|  count | number | _(Optional)_ Number of upgrades to buy at once. Defaults to 1 if not specified. |
+<table><thead><tr><th>
+
+Parameter
+
+
+</th><th>
+
+Type
+
+
+</th><th>
+
+Description
+
+
+</th></tr></thead>
+<tbody><tr><td>
+
+upgName
+
+
+</td><td>
+
+[HacknetServerHashUpgrade](./bitburner.hacknetserverhashupgrade.md)
+
+
+</td><td>
+
+Name of the upgrade using hash of Hacknet Server.
+
+
+</td></tr>
+<tr><td>
+
+count
+
+
+</td><td>
+
+number
+
+
+</td><td>
+
+_(Optional)_ Number of upgrades to buy at once. Defaults to 1 if not specified.
+
+
+</td></tr>
+</tbody></table>
 
 **Returns:**
 
@@ -27,7 +72,7 @@ Number of hashes required for the specified upgrade.
 
 ## Remarks
 
-RAM cost: 0 GB
+RAM cost: 0.5 GB
 
 This function is only applicable for Hacknet Servers (the upgraded version of a Hacknet Node).
 

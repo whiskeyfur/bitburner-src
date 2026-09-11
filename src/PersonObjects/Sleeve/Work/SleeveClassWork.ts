@@ -1,6 +1,7 @@
 import { ClassType, LocationName, UniversityClassType } from "@enums";
-import { Generic_fromJSON, Generic_toJSON, IReviverValue, constructorsForReviver } from "../../../utils/JSONReviver";
-import { applySleeveGains, SleeveWorkClass, SleeveWorkType } from "./Work";
+import { makeSerializable } from "../../../utils/GenericReviver";
+import { Generic_fromJSON, type IReviverValue } from "../../../utils/JSONReviver";
+import { applySleeveGains, SleeveBaseWork, SleeveWorkType } from "./Work";
 import { Classes } from "../../../Work/ClassWork";
 import { calculateClassEarnings } from "../../../Work/Formulas";
 import { Sleeve } from "../Sleeve";
@@ -9,7 +10,7 @@ import { Locations } from "../../../Locations/Locations";
 import { isMember } from "../../../utils/EnumHelper";
 import { assertObject } from "../../../utils/TypeAssertion";
 
-export const isSleeveClassWork = (w: SleeveWorkClass | null): w is SleeveClassWork =>
+export const isSleeveClassWork = (w: SleeveBaseWork | null): w is SleeveClassWork =>
   w !== null && w.type === SleeveWorkType.CLASS;
 
 interface ClassWorkParams {
@@ -17,7 +18,7 @@ interface ClassWorkParams {
   location: LocationName;
 }
 
-export class SleeveClassWork extends SleeveWorkClass {
+export class SleeveClassWork extends SleeveBaseWork {
   type: SleeveWorkType.CLASS = SleeveWorkType.CLASS;
   classType: ClassType;
   location: LocationName;
@@ -46,15 +47,11 @@ export class SleeveClassWork extends SleeveWorkClass {
       type: SleeveWorkType.CLASS as const,
       classType: this.classType,
       location: this.location,
+      nextCompletion: this.nextCompletion,
     };
   }
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("SleeveClassWork", this);
-  }
-
-  /** Initializes a ClassWork object from a JSON save state. */
-  static fromJSON(value: IReviverValue): SleeveClassWork {
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): SleeveClassWork {
     assertObject(value.data);
     if (typeof value.data.classType !== "string" || !(value.data.classType in Classes)) {
       value.data.classType = "Computer Science";
@@ -62,8 +59,8 @@ export class SleeveClassWork extends SleeveWorkClass {
     if (typeof value.data.location !== "string" || !(value.data.location in Locations)) {
       value.data.location = LocationName.Sector12RothmanUniversity;
     }
-    return Generic_fromJSON(SleeveClassWork, value.data);
+    return Generic_fromJSON(SleeveClassWork, value.data, SleeveClassWork.includedKeys);
   }
-}
 
-constructorsForReviver.SleeveClassWork = SleeveClassWork;
+  static includedKeys = makeSerializable("SleeveClassWork", SleeveClassWork);
+}

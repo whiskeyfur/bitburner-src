@@ -29,7 +29,7 @@ exports[`load/saveAllServers 1`] = `
             {
               "ctor": "Script",
               "data": {
-                "code": "/** @param {NS} ns */\\\\nexport async function main(ns) {\\\\n  return ns.asleep(1000000);\\\\n}",
+                "code": "/** @param {NS} ns */\\nexport async function main(ns) {\\n  return ns.asleep(1000000);\\n}",
                 "filename": "script.js",
                 "server": "home",
                 "metadata": {
@@ -46,7 +46,7 @@ exports[`load/saveAllServers 1`] = `
         ]
       },
       "serversOnNetwork": [
-        "n00dles"
+        "__proto__"
       ],
       "smtpPortOpen": false,
       "sqlPortOpen": false,
@@ -81,7 +81,6 @@ exports[`load/saveAllServers 1`] = `
             "onlineRunningTime": 7.210000000000004,
             "ramUsage": 1.6,
             "server": "home",
-            "scriptKey": "script.js*[]",
             "title": "Awesome Script",
             "threads": 1,
             "temporary": false
@@ -90,14 +89,14 @@ exports[`load/saveAllServers 1`] = `
       ]
     }
   },
-  "n00dles": {
+  "__proto__": {
     "ctor": "Server",
     "data": {
       "contracts": [],
       "cpuCores": 1,
       "ftpPortOpen": false,
       "hasAdminRights": false,
-      "hostname": "n00dles",
+      "hostname": "__proto__",
       "httpPortOpen": false,
       "ip": "61.6.6.2",
       "isConnectedTo": false,
@@ -165,7 +164,7 @@ exports[`load/saveAllServers pruning RunningScripts 1`] = `
             {
               "ctor": "Script",
               "data": {
-                "code": "/** @param {NS} ns */\\\\nexport async function main(ns) {\\\\n  return ns.asleep(1000000);\\\\n}",
+                "code": "/** @param {NS} ns */\\nexport async function main(ns) {\\n  return ns.asleep(1000000);\\n}",
                 "filename": "script.js",
                 "server": "home",
                 "metadata": {
@@ -182,7 +181,7 @@ exports[`load/saveAllServers pruning RunningScripts 1`] = `
         ]
       },
       "serversOnNetwork": [
-        "n00dles"
+        "__proto__"
       ],
       "smtpPortOpen": false,
       "sqlPortOpen": false,
@@ -205,14 +204,14 @@ exports[`load/saveAllServers pruning RunningScripts 1`] = `
       "runningScripts": []
     }
   },
-  "n00dles": {
+  "__proto__": {
     "ctor": "Server",
     "data": {
       "contracts": [],
       "cpuCores": 1,
       "ftpPortOpen": false,
       "hasAdminRights": false,
-      "hostname": "n00dles",
+      "hostname": "__proto__",
       "httpPortOpen": false,
       "ip": "61.6.6.2",
       "isConnectedTo": false,

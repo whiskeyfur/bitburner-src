@@ -20,7 +20,7 @@ import { StatsRow } from "../../ui/React/StatsRow";
 import { defaultMultipliers, getBitNodeMultipliers } from "../BitNode";
 import { BitNodeMultipliers } from "../BitNodeMultipliers";
 import { PartialRecord, getRecordEntries } from "../../Types/Record";
-import { canAccessBitNodeFeature } from "../BitNodeUtils";
+import { canAccessBitNodeFeature, getBitNodeLevel } from "../BitNodeUtils";
 
 interface IProps {
   n: number;
@@ -56,8 +56,7 @@ export const BitNodeMultipliersDisplay = ({ n, level, hideMultsIfCannotAccessFea
   // If not, then we have to assume that we want the next level up from the
   // current node's source file, so we get the min of that, the SF's max level,
   // or if it's BN12, ∞
-  const maxSfLevel = n === 12 ? Number.MAX_VALUE : 3;
-  const mults = getBitNodeMultipliers(n, level ?? Math.min(Player.activeSourceFileLvl(n) + 1, maxSfLevel));
+  const mults = getBitNodeMultipliers(n, level ?? getBitNodeLevel(n));
 
   return (
     <Box sx={{ columnCount: 2, columnGap: 1, mb: n === 1 ? 0 : -2 }}>
@@ -66,9 +65,10 @@ export const BitNodeMultipliersDisplay = ({ n, level, hideMultsIfCannotAccessFea
       <FactionMults n={n} mults={mults} />
       <AugmentationMults n={n} mults={mults} />
       <HackingMults n={n} mults={mults} />
-      <PurchasedServersMults n={n} mults={mults} />
+      <CloudServersMults n={n} mults={mults} />
       <StockMults n={n} mults={mults} />
       <CrimeMults n={n} mults={mults} />
+      <DarknetMults n={n} mults={mults} />
       <InfiltrationMults n={n} mults={mults} />
       <CompanyMults n={n} mults={mults} />
       <GangMults n={n} mults={mults} hideMultsIfCannotAccessFeature={hideMultsIfCannotAccessFeature} />
@@ -227,6 +227,17 @@ function CrimeMults({ mults }: IMultsProps): React.ReactElement {
   return <BNMultTable sectionName="Crime" rowData={rows} mults={mults} />;
 }
 
+function DarknetMults({ mults }: IMultsProps): React.ReactElement {
+  const rows: IBNMultRows = {
+    DarknetMoneyMultiplier: {
+      name: "Darknet Money",
+      color: Settings.theme.money,
+    },
+  };
+
+  return <BNMultTable sectionName="Darknet" rowData={rows} mults={mults} />;
+}
+
 function SkillMults({ mults }: IMultsProps): React.ReactElement {
   const rows: IBNMultRows = {
     HackingLevelMultiplier: {
@@ -293,22 +304,22 @@ function HackingMults({ mults }: IMultsProps): React.ReactElement {
   return <BNMultTable sectionName="Hacking" rowData={rows} mults={mults} />;
 }
 
-function PurchasedServersMults({ mults }: IMultsProps): React.ReactElement {
+function CloudServersMults({ mults }: IMultsProps): React.ReactElement {
   const rows: IBNMultRows = {
-    PurchasedServerCost: {
+    CloudServerCost: {
       name: "Base Cost",
-      content: mults.PurchasedServerCost.toFixed(3),
+      content: mults.CloudServerCost.toFixed(3),
     },
-    PurchasedServerSoftcap: {
+    CloudServerSoftcap: {
       name: "Softcap Cost",
-      content: mults.PurchasedServerSoftcap.toFixed(3),
+      content: mults.CloudServerSoftcap.toFixed(3),
     },
-    PurchasedServerLimit: { name: "Server Limit" },
-    PurchasedServerMaxRam: { name: "Max RAM" },
+    CloudServerLimit: { name: "Server Limit" },
+    CloudServerMaxRam: { name: "Max RAM" },
     HomeComputerRamCost: { name: "Home RAM Cost" },
   };
 
-  return <BNMultTable sectionName="Purchased Servers" rowData={rows} mults={mults} />;
+  return <BNMultTable sectionName="Cloud Servers" rowData={rows} mults={mults} />;
 }
 
 function InfiltrationMults({ mults }: IMultsProps): React.ReactElement {

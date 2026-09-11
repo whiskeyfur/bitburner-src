@@ -27,7 +27,7 @@ const ERR = {
   outFileExists: (path: string) =>
     `grep file output failed: Invalid output file "${path}". Output file must not already exist. Pass -f/--allow-overwrite to overwrite.`,
   badOutFile: (path: string) =>
-    `grep file output failed: Invalid output file "${path}". Output file path must be a valid .txt file.`,
+    `grep file output failed: Invalid output file "${path}". Output file path must be a valid text file. (.txt, .json, .css)`,
   truncated: () =>
     `\n${YELLOW}Terminal output truncated to ${Settings.MaxTerminalCapacity} lines (Max terminal capacity)`,
 } as const;
@@ -401,7 +401,7 @@ function grabTerminal(): string[] {
   return Terminal.outputHistory.map((line) => (line as Output).text ?? "");
 }
 
-export function grep(args: (string | number | boolean)[], server: BaseServer): void {
+export function grep(args: (string | number | boolean)[], server: BaseServer): undefined {
   if (!args.length) return Terminal.error(ERR.noArgs);
 
   const [otherArgs, options, params] = new Args(args).splitOptsAndArgs();

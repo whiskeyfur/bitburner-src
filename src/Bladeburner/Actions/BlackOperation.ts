@@ -6,6 +6,9 @@ import { ActionClass, ActionParams } from "./Action";
 import { operationSkillSuccessBonus, operationTeamSuccessBonus } from "./Operation";
 import { getEnumHelper } from "../../utils/EnumHelper";
 import type { TeamActionWithCasualties } from "./TeamCasualties";
+import { type IReviverValue } from "../../utils/JSONReviver";
+import { makeSerializable } from "../../utils/GenericReviver";
+import { clampInteger } from "../../utils/helpers/clampNumber";
 
 interface BlackOpParams {
   name: BladeburnerBlackOpName;
@@ -32,11 +35,11 @@ export class BlackOperation extends ActionClass implements TeamActionWithCasualt
     return getEnumHelper("BladeburnerBlackOpName").isMember(name);
   }
 
-  constructor(params: ActionParams & BlackOpParams) {
+  constructor(params: (ActionParams & BlackOpParams) | null = null) {
     super(params);
-    this.name = params.name;
-    this.reqdRank = params.reqdRank;
-    this.n = params.n;
+    this.name = params?.name ?? BladeburnerBlackOpName.OperationTyphoon;
+    this.reqdRank = params?.reqdRank ?? 0;
+    this.n = params?.n ?? 0;
   }
 
   getAvailability(bladeburner: Bladeburner): Availability {
@@ -65,4 +68,20 @@ export class BlackOperation extends ActionClass implements TeamActionWithCasualt
   getTeamSuccessBonus = operationTeamSuccessBonus;
 
   getActionTypeSkillSuccessBonus = operationSkillSuccessBonus;
+
+  // This is very strange, but it's how it's always been done.
+  jsonReplacer(): IReviverValue {
+    return {
+      ctor: "BlackOperation",
+      data: {
+        teamCount: this.teamCount,
+      },
+    };
+  }
+
+  loadData(loadedObject: BlackOperation): void {
+    this.teamCount = clampInteger(loadedObject.teamCount, 0);
+  }
+
+  static includedKeys = makeSerializable("BlackOperation", BlackOperation);
 }

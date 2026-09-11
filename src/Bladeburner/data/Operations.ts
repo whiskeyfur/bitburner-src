@@ -10,7 +10,7 @@ export function createOperations(): Record<BladeburnerOperationName, Operation> 
       name: BladeburnerOperationName.Investigation,
       desc:
         "As a field agent, investigate and identify Synthoid populations, movements, and operations.\n" +
-        "Successful Investigation ops will increase the accuracy of your synthoid data.\n" +
+        "Successful Investigation ops will increase the accuracy of your Synthoid data.\n" +
         "You will NOT lose HP from failed Investigation ops.",
       successScaling: "Significantly affected by Hacking skill and Charisma. Minor bonus from combat stats.",
       baseDifficulty: 400,
@@ -44,7 +44,7 @@ export function createOperations(): Record<BladeburnerOperationName, Operation> 
       name: BladeburnerOperationName.Undercover,
       desc:
         "Conduct undercover operations to identify hidden and underground Synthoid communities and organizations.\n" +
-        "Successful Undercover ops will increase the accuracy of your synthoid data.",
+        "Successful Undercover ops will increase the accuracy of your Synthoid data.",
       successScaling:
         "Affected by Hacking skill, Dexterity, Agility and Charisma. Minor bonus from Defense and Strength.",
       baseDifficulty: 500,
@@ -230,7 +230,9 @@ export function createOperations(): Record<BladeburnerOperationName, Operation> 
 export function loadOperationsData(data: unknown, operations: Record<BladeburnerOperationName, Operation>) {
   // loading data as "unknown" and typechecking it down is probably not necessary
   // but this will prevent crashes even with malformed savedata
-  if (!data || typeof data !== "object") return;
+  if (data == null || typeof data !== "object" || Array.isArray(data)) {
+    return;
+  }
   assertLoadingType<Record<BladeburnerOperationName, unknown>>(data);
   for (const operationName of Object.values(BladeburnerOperationName)) {
     const loadedOperation = data[operationName];

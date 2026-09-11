@@ -5,14 +5,15 @@ import { Programs } from "../../Programs/Programs";
 import { ProgramFilePath } from "../../Paths/ProgramFilePath";
 import { getRecordKeys } from "../../Types/Record";
 
-export function runProgram(path: ProgramFilePath, args: (string | number | boolean)[], server: BaseServer): void {
+export function runProgram(path: ProgramFilePath, args: (string | number | boolean)[], server: BaseServer): undefined {
   // Check if you have the program on your computer. If you do, execute it, otherwise
   // display an error message
   const programLowered = path.toLowerCase();
   // Support lowercase even though it's an enum
 
   const realProgramName = getRecordKeys(Programs).find((name) => name.toLowerCase() === programLowered);
-  if (!realProgramName || !Player.hasProgram(realProgramName)) {
+  const programPresentOnServer = server.programs.find((name) => name.toLowerCase() === programLowered);
+  if (!realProgramName || (!Player.hasProgram(realProgramName) && !programPresentOnServer)) {
     Terminal.error(
       `No such (js, jsx, ts, tsx, script, cct, or exe) file! (Only finished programs that exist on your home computer or scripts on ${server.hostname} can be run)`,
     );

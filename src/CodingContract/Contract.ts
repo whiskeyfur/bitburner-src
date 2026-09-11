@@ -1,10 +1,11 @@
-import { FactionName, CodingContractName } from "@enums";
+import { CodingContractName } from "@enums";
 import { CodingContractTypes } from "./ContractTypes";
 
-import { Generic_fromJSON, Generic_toJSON, IReviverValue, constructorsForReviver } from "../utils/JSONReviver";
+import { type IReviverValue, Generic_fromJSON } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
 import { ContractFilePath, resolveContractFilePath } from "../Paths/ContractFilePath";
 import { assertObject } from "../utils/TypeAssertion";
-import { Result } from "../types";
+import type { Result } from "@nsdefs";
 import { CodingContractEventEmitter } from "./CodingContractEventEmitter";
 
 // Numeric enum
@@ -13,7 +14,7 @@ export enum CodingContractRewardType {
   FactionReputation,
   FactionReputationAll,
   CompanyReputation,
-  Money, // This must always be the last reward type
+  Money,
 }
 
 // Numeric enum
@@ -35,11 +36,9 @@ export type ICodingContractReward =
     }
   | {
       type: CodingContractRewardType.CompanyReputation;
-      name: string;
     }
   | {
       type: CodingContractRewardType.FactionReputation;
-      name: FactionName;
     };
 
 /**
@@ -57,6 +56,9 @@ export class CodingContract {
        processed outside of this file */
   reward: ICodingContractReward | null;
 
+  /* Scalar for the reward, used to generate lower-value CCTs more frequently */
+  rewardScaling: number = 1;
+
   /* Number of times the Contract has been attempted */
   tries = 0;
 
@@ -67,6 +69,7 @@ export class CodingContract {
     fn = "default.cct",
     type = CodingContractName.FindLargestPrimeFactor,
     reward: ICodingContractReward | null = null,
+    rewardScaling: number = 1,
   ) {
     const path = resolveContractFilePath(fn);
     if (!path) {
@@ -80,6 +83,11 @@ export class CodingContract {
     this.type = type;
     this.state = CodingContractTypes[type].generate();
     this.reward = reward;
+    this.rewardScaling = rewardScaling;
+  }
+
+  getAnswer() {
+    return CodingContractTypes[this.type].getAnswer(this.state);
   }
 
   getData(): unknown {
@@ -165,21 +173,16 @@ export class CodingContract {
     });
   }
 
-  /** Serialize the current file to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("CodingContract", this);
-  }
-
-  /** Initializes a CodingContract from a JSON save state. */
-  static fromJSON(value: IReviverValue): CodingContract {
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): CodingContract {
     assertObject(value.data);
     // In previous versions, there was a data field instead of a state field.
     if ("data" in value.data) {
       value.data.state = value.data.data;
       delete value.data.data;
     }
-    return Generic_fromJSON(CodingContract, value.data);
+    return Generic_fromJSON(CodingContract, value.data, CodingContract.includedKeys);
   }
-}
 
-constructorsForReviver.CodingContract = CodingContract;
+  static includedKeys = makeSerializable("CodingContract", CodingContract);
+}

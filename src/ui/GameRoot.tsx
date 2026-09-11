@@ -5,8 +5,8 @@ import { makeStyles } from "tss-react/mui";
 
 import { Player } from "@player";
 import { installAugmentations } from "../Augmentation/AugmentationHelpers";
-import { saveObject } from "../SaveObject";
-import { CompletedProgramName, LocationName, SimplePage } from "@enums";
+import { saveGame, exportGame } from "../SaveObject";
+import { CompletedProgramName, ComplexPage, LocationName, SimplePage } from "@enums";
 import { ITutorial, iTutorialStart } from "../InteractiveTutorial";
 import { InteractiveTutorialRoot } from "./InteractiveTutorial/InteractiveTutorialRoot";
 import { ITutorialEvents } from "./InteractiveTutorial/ITutorialEvents";
@@ -16,7 +16,6 @@ import { dialogBoxCreate } from "./React/DialogBox";
 import { GetAllServers } from "../Server/AllServers";
 import { StockMarket } from "../StockMarket/StockMarket";
 
-import type { ComplexPage } from "./Enums";
 import type { IRouter, PageContext, PageWithContext } from "./Router";
 import { isSimplePage, Page } from "./Router";
 import { Overview } from "./React/Overview";
@@ -29,7 +28,7 @@ import { CorporationRoot } from "../Corporation/ui/CorporationRoot";
 import { InfiltrationRoot } from "../Infiltration/ui/InfiltrationRoot";
 import { GraftingRoot } from "../PersonObjects/Grafting/ui/GraftingRoot";
 import { WorkInProgressRoot } from "./WorkInProgressRoot";
-import { GameOptionsRoot } from "../GameOptions/ui/GameOptionsRoot";
+import { GameOptionsPageEvents, GameOptionsRoot } from "../GameOptions/ui/GameOptionsRoot";
 import { SleeveRoot } from "../PersonObjects/Sleeve/ui/SleeveRoot";
 import { HacknetRoot } from "../Hacknet/ui/HacknetRoot";
 import { GenericLocation } from "../Locations/ui/GenericLocation";
@@ -64,22 +63,22 @@ import { ActivateRecoveryMode, RecoveryMode, RecoveryRoot } from "./React/Recove
 import { AchievementsRoot } from "../Achievements/AchievementsRoot";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ThemeBrowser } from "../Themes/ui/ThemeBrowser";
-import { ImportSave } from "./React/ImportSave";
+import { ImportSaveComparison } from "./React/ImportSaveComparison";
 import { BypassWrapper } from "./React/BypassWrapper";
 
 import { Apr1 } from "./Apr1";
 import { V2Modal } from "../utils/V2Modal";
-import { MathJaxContext } from "better-react-mathjax";
 import { useRerender } from "./React/hooks";
 import { HistoryProvider } from "./React/Documentation";
 import { GoRoot } from "../Go/ui/GoRoot";
-import { Settings } from "../Settings/Settings";
 import { isBitNodeFinished } from "../BitNode/BitNodeUtils";
 import { UIEventEmitter, UIEventType } from "./UIEventEmitter";
 import { exceptionAlert } from "../utils/helpers/exceptionAlert";
 import { SpecialServers } from "../Server/data/SpecialServers";
 import { ErrorModal } from "../ErrorHandling/ErrorModal";
+import { DWRoot } from "../DarkNet/DWRoot";
 import { DocumentationPopUp } from "../Documentation/ui/DocumentationPopUp";
+import { CustomPage } from "./CustomPage";
 
 const htmlLocation = location;
 
@@ -218,13 +217,12 @@ export function GameRoot(): React.ReactElement {
   }, [rerender]);
 
   function killAllScripts(): void {
-    for (const server of GetAllServers()) {
+    for (const server of GetAllServers(true)) {
       server.runningScriptMap.clear();
     }
-    saveObject
-      .saveGame()
+    saveGame()
       .then(() => {
-        setTimeout(() => htmlLocation.reload(), 2000);
+        setTimeout(() => htmlLocation.reload(), 0);
       })
       .catch((error) => {
         exceptionAlert(error);
@@ -257,6 +255,21 @@ export function GameRoot(): React.ReactElement {
           prestigeWorkerScripts();
           calculateAchievements();
           break;
+        case Page.Options:
+          // If the current page is "Options" and something calls Router.toPage("Options", { tab: "Foo" }) to switch the
+          // tab, we need to emit an event to tell GameOptionsRoot to set its currentTab state. Changing the tab in the
+          // properties of GameOptionsRoot does not set the state.
+          if (Router.page() === Page.Options && context && "tab" in context && context.tab != null) {
+            GameOptionsPageEvents.emit(context.tab);
+          }
+          break;
+      }
+      // If the current page is Page.Work, the player is focusing on their current work. Switching to another page ends
+      // that focus, so we must call Player.stopFocusing() immediately after Router.toPage() to keep Player.focus in
+      // sync. Instead of repeating this logic wherever Router.toPage() is called, we should centralize the check and
+      // the Player.stopFocusing() call here.
+      if (pageWithContext.page === Page.Work && page !== Page.Work && Player.currentWork && Player.focus) {
+        Player.stopFocusing();
       }
       setNextPage({ page, ...context } as PageWithContext);
     },
@@ -277,7 +290,7 @@ export function GameRoot(): React.ReactElement {
 
   useEffect(() => {
     if (pageWithContext.page !== Page.Terminal) window.scrollTo(0, 0);
-  });
+  }, [pageWithContext.page]);
 
   function softReset(): void {
     dialogBoxCreate("Soft Reset!");
@@ -303,7 +316,7 @@ export function GameRoot(): React.ReactElement {
       break;
     }
     case Page.Infiltration: {
-      mainPage = <InfiltrationRoot location={pageWithContext.location} />;
+      mainPage = <InfiltrationRoot />;
       withSidebar = false;
       break;
     }
@@ -336,15 +349,15 @@ export function GameRoot(): React.ReactElement {
     case Page.ScriptEditor: {
       mainPage = (
         <ScriptEditorRoot
-          files={pageWithContext.files ?? new Map()}
-          hostname={pageWithContext.options?.hostname ?? Player.getCurrentServer().hostname}
-          vim={pageWithContext.options === undefined ? Settings.MonacoDefaultToVim : pageWithContext.options.vim}
+          files={pageWithContext.files}
+          hostname={pageWithContext.options.hostname}
+          vim={pageWithContext.options.vim}
         />
       );
       break;
     }
     case Page.ActiveScripts: {
-      mainPage = <ActiveScriptsRoot page={SimplePage.ActiveScripts} />;
+      mainPage = <ActiveScriptsRoot page={ComplexPage.ActiveScripts} serverName={pageWithContext.serverName} />;
       break;
     }
     case Page.RecentlyKilledScripts: {
@@ -425,11 +438,12 @@ export function GameRoot(): React.ReactElement {
     case Page.Options: {
       mainPage = (
         <GameOptionsRoot
+          tab={pageWithContext.tab}
           save={() => {
-            saveObject.saveGame().catch((error) => exceptionAlert(error));
+            saveGame().catch((error) => exceptionAlert(error));
           }}
           export={() => {
-            saveObject.exportGame().catch((error) => exceptionAlert(error));
+            exportGame().catch((error) => exceptionAlert(error));
           }}
           forceKill={killAllScripts}
           softReset={softReset}
@@ -448,7 +462,7 @@ export function GameRoot(): React.ReactElement {
       mainPage = (
         <AugmentationsRoot
           exportGameFn={() => {
-            saveObject.exportGame().catch((error) => exceptionAlert(error));
+            exportGame().catch((error) => exceptionAlert(error));
           }}
           installAugmentationsFn={() => {
             installAugmentations();
@@ -461,6 +475,10 @@ export function GameRoot(): React.ReactElement {
       mainPage = <GoRoot />;
       break;
     }
+    case Page.DarkNet: {
+      mainPage = <DWRoot />;
+      break;
+    }
     case Page.Achievements: {
       mainPage = <AchievementsRoot />;
       break;
@@ -470,9 +488,13 @@ export function GameRoot(): React.ReactElement {
       break;
     }
     case Page.ImportSave: {
-      mainPage = <ImportSave saveData={pageWithContext.saveData} automatic={!!pageWithContext.automatic} />;
+      mainPage = <ImportSaveComparison saveData={pageWithContext.saveData} automatic={!!pageWithContext.automatic} />;
       withSidebar = false;
       bypassGame = true;
+      break;
+    }
+    case Page.CustomPage: {
+      mainPage = <CustomPage content={pageWithContext.content} />;
       break;
     }
   }
@@ -505,7 +527,7 @@ export function GameRoot(): React.ReactElement {
   }, []);
 
   return (
-    <MathJaxContext version={3} src={__webpack_public_path__ + "mathjax/tex-chtml.js"}>
+    <>
       <ErrorBoundary key={errorBoundaryKey} softReset={softReset}>
         <BypassWrapper content={bypassGame ? mainPage : null}>
           <HistoryProvider>
@@ -516,7 +538,7 @@ export function GameRoot(): React.ReactElement {
                     <CharacterOverview
                       parentOpen={parentOpen}
                       save={() => {
-                        saveObject.saveGame().catch((error) => exceptionAlert(error));
+                        saveGame().catch((error) => exceptionAlert(error));
                       }}
                       killScripts={killAllScripts}
                     />
@@ -540,13 +562,14 @@ export function GameRoot(): React.ReactElement {
               <PromptManager hidden={hidePopups} />
               <FactionInvitationManager hidden={hidePopups} />
               <Snackbar hidden={hidePopups} />
-              <DocumentationPopUp hidden={hidePopups} />
+              {/* Allow opening the documentation popup in the BitVerse */}
+              <DocumentationPopUp hidden={hidePopups && pageWithContext.page !== Page.BitVerse} />
               <Apr1 />
             </SnackbarProvider>
           </HistoryProvider>
         </BypassWrapper>
       </ErrorBoundary>
       <V2Modal />
-    </MathJaxContext>
+    </>
   );
 }

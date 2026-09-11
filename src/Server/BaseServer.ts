@@ -12,8 +12,8 @@ import { IReturnStatus } from "../types";
 import { ScriptFilePath, resolveScriptFilePath, hasScriptExtension } from "../Paths/ScriptFilePath";
 import { Directory, resolveDirectory } from "../Paths/Directory";
 import { TextFilePath, resolveTextFilePath, hasTextExtension } from "../Paths/TextFilePath";
-import { Generic_toJSON, Generic_fromJSON, IReviverValue } from "../utils/JSONReviver";
-import { matchScriptPathExact } from "../utils/helpers/scriptKey";
+import { Generic_toJSON, Generic_fromJSON, type IReviverValue } from "../utils/JSONReviver";
+import { matchScriptPathExact, scriptKey } from "../utils/helpers/scriptKey";
 
 import { createRandomIp } from "../utils/IPAddress";
 import { JSONMap } from "../Types/Jsonable";
@@ -26,8 +26,9 @@ import { Settings } from "../Settings/Settings";
 import type { ScriptKey } from "../utils/helpers/scriptKey";
 import { assertObject } from "../utils/TypeAssertion";
 import { clampNumber } from "../utils/helpers/clampNumber";
+import { roundToTwo } from "../utils/helpers/roundToTwo";
 
-interface IConstructorParams {
+export interface BaseServerConstructorParams {
   adminRights?: boolean;
   hostname: string;
   ip?: IPAddress;
@@ -73,7 +74,7 @@ export abstract class BaseServer implements IServer {
   messages: (MessageFilename | LiteratureName)[] = [];
 
   // Name of company/faction/etc. that this server belongs to.
-  // Optional, not applicable to all Servers
+  // Optional, not applicable to all Servers (e.g., pserver, hacknet server, and dnet server)
   organizationName = "";
 
   // Programs on this servers. Contains only the names of the programs
@@ -109,7 +110,7 @@ export abstract class BaseServer implements IServer {
   // Text files on this server
   textFiles = new JSONMap<TextFilePath, TextFile>();
 
-  // Flag indicating whether this is a purchased server
+  // Flag indicating whether this is a server owned by the player (e.g., home, cloud servers, hacknet servers)
   purchasedByPlayer = false;
 
   // Optional, listed just so they can be accessed on a BaseServer. These will be undefined for HacknetServers.
@@ -125,7 +126,7 @@ export abstract class BaseServer implements IServer {
   serverGrowth?: number;
   isHacknetServer?: boolean;
 
-  constructor(params: IConstructorParams = { hostname: "", ip: createRandomIp() }) {
+  constructor(params: BaseServerConstructorParams = { hostname: "", ip: createRandomIp() }) {
     this.ip = params.ip ? params.ip : createRandomIp();
 
     this.hostname = params.hostname;
@@ -220,10 +221,11 @@ export abstract class BaseServer implements IServer {
    * be run.
    */
   runScript(script: RunningScript): void {
-    let byPid = this.runningScriptMap.get(script.scriptKey);
+    const key = scriptKey(script.filename, script.args);
+    let byPid = this.runningScriptMap.get(key);
     if (!byPid) {
       byPid = new Map();
-      this.runningScriptMap.set(script.scriptKey, byPid);
+      this.runningScriptMap.set(key, byPid);
     }
     byPid.set(script.pid, script);
   }
@@ -233,7 +235,7 @@ export abstract class BaseServer implements IServer {
   }
 
   updateRamUsed(ram: number): void {
-    this.ramUsed = clampNumber(ram, 0, this.maxRam);
+    this.ramUsed = roundToTwo(clampNumber(ram, 0, this.maxRam));
   }
 
   pushProgram(program: ProgramFilePath | CompletedProgramName): void {
@@ -291,7 +293,7 @@ export abstract class BaseServer implements IServer {
 
   // Serialize the current object to a JSON save state
   // Called by subclasses, not stringify.
-  toJSONBase(ctorName: string, keys: readonly (keyof this)[]): IReviverValue {
+  toJSONBase(ctorName: string, keys: readonly string[]): IReviverValue {
     // RunningScripts are stored as a simple array, both for backward compatibility,
     // compactness, and ease of filtering them here.
     const result = Generic_toJSON(ctorName, this, keys);
@@ -315,11 +317,17 @@ export abstract class BaseServer implements IServer {
 
   // Initializes a Server Object from a JSON save state
   // Called by subclasses, not Reviver.
-  static fromJSONBase<T extends BaseServer>(value: IReviverValue, ctor: new () => T, keys: readonly (keyof T)[]): T {
+  static fromJSONBase<T extends BaseServer>(value: IReviverValue, ctor: new () => T, keys: readonly string[]): T {
     assertObject(value.data);
     const server = Generic_fromJSON(ctor, value.data, keys);
     if (value.data.runningScripts != null && Array.isArray(value.data.runningScripts)) {
       server.savedScripts = value.data.runningScripts;
+    }
+    // Remove duplicate .lit and .msg files.
+    const messageSet = new Set(server.messages);
+    if (messageSet.size !== server.messages.length) {
+      console.warn("Found duplicate messages in ", server.messages);
+      server.messages = [...messageSet];
     }
     // If textFiles is not an array, we've already done the 2.3 migration to textFiles and scripts as maps + path changes.
     if (!Array.isArray(server.textFiles)) return server;
@@ -372,7 +380,7 @@ export abstract class BaseServer implements IServer {
   }
 
   // Customize a prune list for a subclass.
-  static getIncludedKeys<T extends BaseServer>(ctor: new () => T): readonly (keyof T)[] {
+  static getIncludedKeys<T extends BaseServer>(ctor: new () => T): readonly string[] {
     return getKeyList(ctor, { removedKeys: ["runningScriptMap", "savedScripts", "ramUsed", "isHacknetServer"] });
   }
 }

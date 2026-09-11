@@ -19,8 +19,9 @@ import { serverMetadata } from "../Server/data/servers";
 import { Company } from "../Company/Company";
 import { CompanyPosition } from "../Company/CompanyPosition";
 import { isMember } from "../utils/EnumHelper";
+import { getMultiplierFromCharisma } from "../DarkNet/effects/effects";
 
-function processWorkStats(person: IPerson, workStats: WorkStats): WorkStats {
+export function processWorkStats(person: IPerson, workStats: WorkStats): WorkStats {
   // "person" can be a normal object that the player passes to NS APIs, so we cannot use `person instanceof Sleeve`.
   if (Player.bitNodeOptions.disableSleeveExpAndAugmentation && "shock" in person) {
     workStats.hackExp = 0;
@@ -96,26 +97,26 @@ export function calculateFactionExp(person: IPerson, type: FactionWorkType): Wor
 }
 
 /** Calculate cost for a class */
-export function calculateCost(classs: Class, location: Location): number {
+export function calculateCost(classInfo: Class, location: Location): number {
   const serverMeta = serverMetadata.find((s) => s.specialName === location.name);
   const server = GetServer(serverMeta ? serverMeta.hostname : "");
   const discount = (server as Server)?.backdoorInstalled ? 0.9 : 1;
-  return classs.earnings.money * location.costMult * discount;
+  return classInfo.earnings.money * location.costMult * discount;
 }
 
 /** @returns per-cycle WorkStats */
 export function calculateClassEarnings(person: IPerson, type: ClassType, locationName: LocationName): WorkStats {
   const hashManager = Player.hashManager;
-  const classs = Classes[type];
+  const classInfo = Classes[type];
   const location = Locations[locationName];
 
   const hashMult = isMember("GymType", type) ? hashManager.getTrainingMult() : hashManager.getStudyMult();
 
   const earnings = multWorkStats(
-    scaleWorkStats(classs.earnings, (location.expMult / gameCPS) * hashMult, false),
+    scaleWorkStats(classInfo.earnings, (location.expMult / gameCPS) * hashMult, false),
     person.mults,
   );
-  earnings.money = calculateCost(classs, location) / gameCPS;
+  earnings.money = calculateCost(classInfo, location) / gameCPS;
   return processWorkStats(person, earnings);
 }
 
@@ -129,6 +130,7 @@ export const calculateCompanyWorkStats = (
   // If player has SF-11, calculate salary multiplier from favor
   const favorMult = isNaN(favor) ? 1 : 1 + favor / 100;
   const bn11Mult = Player.activeSourceFileLvl(11) > 0 ? favorMult : 1;
+  const sf15Mult = Player.activeSourceFileLvl(15) > 1 ? getMultiplierFromCharisma(1.5) : 1;
 
   const gains = scaleWorkStats(
     multWorkStats(
@@ -142,7 +144,8 @@ export const calculateCompanyWorkStats = (
         chaExp: companyPosition.charismaExpGain,
       },
       worker.mults,
-      worker.mults.work_money,
+      worker.mults.work_money * sf15Mult,
+      sf15Mult,
     ),
     company.expMultiplier * currentNodeMults.CompanyWorkExpGain,
     false,

@@ -13,18 +13,20 @@ import { createProgressBarText } from "../../utils/helpers/createProgressBarText
 interface ServerAccordionProps {
   server: BaseServer;
   scripts: WorkerScript[];
+  startOpen: boolean;
 }
 
-export function ServerAccordion({ server, scripts }: ServerAccordionProps): React.ReactElement {
-  const [open, setOpen] = React.useState(false);
+export function ServerAccordion({ server, scripts, startOpen }: ServerAccordionProps): React.ReactElement {
+  const [open, setOpen] = React.useState(startOpen);
 
   // Accordion's header text
-  // TODO: calculate the longest hostname length rather than hard coding it
-  const longestHostnameLength = 18;
-  const paddedName = `${server.hostname}${" ".repeat(longestHostnameLength)}`.slice(
-    0,
-    Math.max(server.hostname.length, longestHostnameLength),
-  );
+  const longestHostnameLength = 26;
+  // Use spread operator to get accurate length on servers with UTF-16 names
+  const hostnameChars = [...server.hostname];
+  const paddedName =
+    hostnameChars.length > longestHostnameLength
+      ? hostnameChars.slice(0, longestHostnameLength - 3).join("") + "..."
+      : server.hostname + " ".repeat(longestHostnameLength - hostnameChars.length);
   const barOptions = {
     progress: server.ramUsed / server.maxRam,
     totalTicks: 30,

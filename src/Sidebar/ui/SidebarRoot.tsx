@@ -38,6 +38,7 @@ import AccountBoxIcon from "@mui/icons-material/AccountBox"; // Character
 import PublicIcon from "@mui/icons-material/Public"; // World
 import LiveHelpIcon from "@mui/icons-material/LiveHelp"; // Help
 import BorderInnerSharpIcon from "@mui/icons-material/BorderInnerSharp"; // IPvGO
+import ShareIcon from "@mui/icons-material/Share"; // DarkWeb
 import BiotechIcon from "@mui/icons-material/Biotech"; // Grafting
 
 import { Router } from "../../ui/GameRoot";
@@ -49,7 +50,7 @@ import { CONSTANTS } from "../../Constants";
 import { iTutorialSteps, iTutorialNextStep, ITutorial } from "../../InteractiveTutorial";
 import { getAvailableCreatePrograms } from "../../Programs/ProgramHelpers";
 import { Settings } from "../../Settings/Settings";
-import { AugmentationName, CityName } from "@enums";
+import { AugmentationName } from "@enums";
 
 import { ProgramsSeen } from "../../Programs/ui/ProgramsRoot";
 import { InvitationsSeen } from "../../Faction/ui/FactionsRoot";
@@ -69,6 +70,8 @@ import {
 } from "../../utils/KeyBindingUtils";
 import { throwIfReachable } from "../../utils/helpers/throwIfReachable";
 import { ErrorState } from "../../ErrorHandling/ErrorState";
+
+import { hasDarknetAccess } from "../../DarkNet/utils/darknetAuthUtils";
 
 const RotatedDoubleArrowIcon = React.forwardRef(function RotatedDoubleArrowIcon(
   props: { color: "primary" | "secondary" | "error" },
@@ -126,10 +129,10 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
   let flash: Page | null = null;
   switch (ITutorial.currStep) {
     case iTutorialSteps.CharacterGoToTerminalPage:
-    case iTutorialSteps.ActiveScriptsPage:
+    case iTutorialSteps.ActiveScriptsDescription:
       flash = Page.Terminal;
       break;
-    case iTutorialSteps.GoToCharacterPage:
+    case iTutorialSteps.GoToCharacterStatsPage:
       flash = Page.Stats;
       break;
     case iTutorialSteps.TerminalGoToActiveScriptsPage:
@@ -154,6 +157,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
   const canOpenFactions =
     Player.factionInvitations.length > 0 ||
     Player.factions.length > 0 ||
+    Player.factionRumors.size > 0 ||
     Player.augmentations.length > 0 ||
     Player.queuedAugmentations.length > 0 ||
     knowAboutBitverse();
@@ -165,7 +169,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
     Player.exploits.length > 0;
 
   const canOpenSleeves = Player.sleeves.length > 0;
-  const canOpenGrafting = Player.canAccessGrafting() && Player.city === CityName.NewTokyo;
+  const canOpenGrafting = Player.canAccessGrafting();
 
   const canCorporation = !!Player.corporation;
   const canGang = !!Player.gang;
@@ -174,10 +178,16 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
   const canBladeburner = !!Player.bladeburner;
   const canStaneksGift = Player.augmentations.some((aug) => aug.name === AugmentationName.StaneksGift1);
   const canIPvGO = playerHasDiscoveredGo();
+  const canDarkNet = hasDarknetAccess();
 
   const clickPage = useCallback(
     (page: Page) => {
-      if (page == Page.ScriptEditor || page == Page.Documentation) {
+      if (page == Page.ScriptEditor) {
+        Router.toPage(page, {
+          files: new Map(),
+          options: { vim: Settings.MonacoDefaultToVim, hostname: Player.currentServer },
+        });
+      } else if (page === Page.Documentation || page === Page.Options || page === Page.ActiveScripts) {
         Router.toPage(page, {});
       } else if (isSimplePage(page)) {
         Router.toPage(page);
@@ -199,7 +209,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
       switch (keyBindingType) {
         case SimplePage.Terminal:
         case ComplexPage.ScriptEditor:
-        case SimplePage.ActiveScripts:
+        case ComplexPage.ActiveScripts:
         case SimplePage.CreateProgram:
         case SimplePage.Stats:
         case SimplePage.Hacknet:
@@ -208,7 +218,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
         case SimplePage.Milestones:
         case ComplexPage.Documentation:
         case SimplePage.Achievements:
-        case SimplePage.Options:
+        case ComplexPage.Options:
           return true;
         case SimplePage.StaneksGift:
           return canStaneksGift;
@@ -232,6 +242,8 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
           return canGang;
         case SimplePage.Go:
           return canIPvGO;
+        case SimplePage.DarkNet:
+          return canDarkNet;
         case ScriptEditorAction.Save:
         case ScriptEditorAction.GoToTerminal:
         case ScriptEditorAction.Run:
@@ -253,6 +265,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
       canCorporation,
       canGang,
       canIPvGO,
+      canDarkNet,
     ],
   );
 
@@ -306,7 +319,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
   const li_classes = useMemo(() => ({ root: classes.listitem }), [classes.listitem]);
   const ChevronOpenClose = open ? ChevronLeftIcon : ChevronRightIcon;
 
-  // Explicitily useMemo() to save rerendering deep chunks of this tree.
+  // Explicitly useMemo() to save rerendering deep chunks of this tree.
   // memo() can't be (easily) used on components like <List>, because the
   // props.children array will be a different object every time.
   return (
@@ -351,6 +364,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
             canStaneksGift && { key_: Page.StaneksGift, icon: DeveloperBoardIcon },
           ]}
         />
+        <Typography component="div" id="sidebar-extra-hook-0"></Typography>
         <Divider />
         <SidebarAccordion
           key_="Character"
@@ -378,6 +392,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
             canOpenGrafting && { key_: Page.Grafting, icon: BiotechIcon },
           ]}
         />
+        <Typography component="div" id="sidebar-extra-hook-1"></Typography>
         <Divider />
         <SidebarAccordion
           key_="World"
@@ -400,8 +415,10 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
             canCorporation && { key_: Page.Corporation, icon: BusinessIcon },
             canGang && { key_: Page.Gang, icon: SportsMmaIcon },
             canIPvGO && { key_: Page.Go, icon: BorderInnerSharpIcon },
+            canDarkNet && { key_: Page.DarkNet, icon: ShareIcon },
           ]}
         />
+        <Typography component="div" id="sidebar-extra-hook-2"></Typography>
         <Divider />
         <SidebarAccordion
           key_="Help"
@@ -419,6 +436,7 @@ export function SidebarRoot(props: { page: Page }): React.ReactElement {
             process.env.NODE_ENV === "development" && { key_: Page.DevMenu, icon: DeveloperBoardIcon },
           ]}
         />
+        <Typography component="div" id="sidebar-extra-hook-3"></Typography>
       </List>
     </Drawer>
   );

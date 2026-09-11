@@ -23,6 +23,7 @@ import { useCorporation, useDivision } from "./Context";
 import { gameCyclesPerCorpStateCycle } from "../data/Constants";
 import { ButtonWithTooltip } from "../../ui/Components/ButtonWithTooltip";
 import { StatsTable } from "../../ui/React/StatsTable";
+import { getRecordKeys } from "../../Types/Record";
 
 interface WarehouseProps {
   corp: Corporation;
@@ -73,6 +74,7 @@ function WarehouseRoot(props: WarehouseProps): React.ReactElement {
     const isInStock = props.warehouse.materials[matName].stored > 0;
     const isRelevant = isRelevantMaterial(matName, division);
     if (!isInStock && !isRelevant) continue;
+    const isOutputMaterial = division.producedMaterials.includes(matName);
     mats.push(
       <MaterialElem
         rerender={props.rerender}
@@ -80,6 +82,7 @@ function WarehouseRoot(props: WarehouseProps): React.ReactElement {
         key={matName}
         mat={props.warehouse.materials[matName]}
         warehouse={props.warehouse}
+        isOutputMaterial={isOutputMaterial}
       />,
     );
   }
@@ -95,9 +98,13 @@ function WarehouseRoot(props: WarehouseProps): React.ReactElement {
   }
 
   const breakdownItems: string[][] = [];
-  for (const matName of corpConstants.materialNames) {
+  const relevantMaterials = new Set([
+    ...getRecordKeys(props.division.requiredMaterials),
+    ...props.division.producedMaterials,
+    ...corpConstants.boostMaterials,
+  ]);
+  for (const matName of relevantMaterials) {
     const mat = props.warehouse.materials[matName];
-    if (mat.stored === 0) continue;
     breakdownItems.push([
       `${matName}:`,
       `${formatMaterialSize(MaterialInfo[matName].size)}`,

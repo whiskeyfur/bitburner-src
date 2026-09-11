@@ -25,6 +25,9 @@ declare module "@mui/material/styles" {
       black: React.CSSProperties["color"];
       maplocation: React.CSSProperties["color"];
       disabled: React.CSSProperties["color"];
+      primary: React.CSSProperties["color"];
+      secondary: React.CSSProperties["color"];
+      well: React.CSSProperties["color"];
     };
   }
   interface ThemeOptions {
@@ -46,11 +49,15 @@ declare module "@mui/material/styles" {
       black: React.CSSProperties["color"];
       maplocation: React.CSSProperties["color"];
       disabled: React.CSSProperties["color"];
+      primary: React.CSSProperties["color"];
+      secondary: React.CSSProperties["color"];
+      well: React.CSSProperties["color"];
     };
   }
 }
 
 let theme: Theme;
+const themeStyleSheet = new CSSStyleSheet();
 
 export function refreshTheme(): void {
   theme = createTheme({
@@ -72,6 +79,9 @@ export function refreshTheme(): void {
       black: Settings.theme.black,
       maplocation: Settings.theme.maplocation,
       disabled: Settings.theme.disabled,
+      primary: Settings.theme.primary,
+      secondary: Settings.theme.secondary,
+      well: Settings.theme.well,
     },
     palette: {
       primary: {
@@ -415,11 +425,29 @@ export function refreshTheme(): void {
           },
         },
       },
+      MuiLink: {
+        styleOverrides: {
+          root: {
+            fontFamily: Settings.styles.fontFamily,
+          },
+        },
+      },
     },
   });
 
   document.body.style.backgroundColor = theme.colors.backgroundprimary?.toString() ?? "black";
+
+  const styleSheet =
+    ":root {" +
+    Object.entries(Settings.theme)
+      .map(([k, v]) => `--bb-theme-${k}: ${v}`)
+      .join(";") +
+    "}";
+
+  themeStyleSheet.replaceSync(styleSheet);
 }
+
+document.adoptedStyleSheets.push(themeStyleSheet);
 refreshTheme();
 
 interface IProps {

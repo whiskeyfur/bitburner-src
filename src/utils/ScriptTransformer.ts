@@ -16,6 +16,7 @@ export enum FileType {
   TS,
   TSX,
   NS1,
+  CSS,
 }
 
 export interface FileTypeFeature {
@@ -44,6 +45,8 @@ export function getFileType(filename: string): FileType {
       return FileType.TSX;
     case "script":
       return FileType.NS1;
+    case "css":
+      return FileType.CSS;
     default:
       throw new Error(`Invalid extension: ${extension}. Filename: ${filename}.`);
   }
@@ -138,7 +141,7 @@ export function getModuleScript(
   for (const extension of validScriptExtensions) {
     const filename = resolveScriptFilePath(moduleName, baseModule, extension);
     if (!filename) {
-      throw new ModuleResolutionError(`Invalid module: "${moduleName}". Base module: "${baseModule}".`);
+      throw new ModuleResolutionError(`Invalid module path: "${moduleName}". Base module: "${baseModule}".`);
     }
     script = scripts.get(filename);
     if (script) {
@@ -146,7 +149,7 @@ export function getModuleScript(
     }
   }
   if (!script) {
-    throw new ModuleResolutionError(`Invalid module: "${moduleName}". Base module: "${baseModule}".`);
+    throw new ModuleResolutionError(`Module not found: "${moduleName}". Base module: "${baseModule}".`);
   }
   return script;
 }

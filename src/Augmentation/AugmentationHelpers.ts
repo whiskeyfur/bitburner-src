@@ -14,7 +14,7 @@ import { mergeMultipliers } from "../PersonObjects/Multipliers";
 import { currentNodeMults } from "../BitNode/BitNodeMultipliers";
 import { prestigeWorkerScripts } from "../NetscriptWorker";
 
-const soaAugmentationNames = [
+export const soaAugmentationNames = [
   AugmentationName.BeautyOfAphrodite,
   AugmentationName.ChaosOfDionysus,
   AugmentationName.FloodOfPoseidon,
@@ -47,6 +47,9 @@ export function applyAugmentation(aug: PlayerOwnedAugmentation, reapply = false)
     Player.entropy = 0;
     Player.applyEntropy(Player.entropy);
   }
+
+  // Recalculate skill levels after applying multipliers.
+  Player.updateSkillLevels();
 
   // Special logic for NeuroFlux Governor
   const ownedNfg = Player.augmentations.find((pAug) => pAug.name === AugmentationName.NeuroFluxGovernor);

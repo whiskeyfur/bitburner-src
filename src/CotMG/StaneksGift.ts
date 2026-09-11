@@ -2,17 +2,16 @@ import { Player } from "@player";
 import { AugmentationName, FactionName } from "@enums";
 import { Fragment } from "./Fragment";
 import { ActiveFragment } from "./ActiveFragment";
-import { FragmentType } from "./FragmentType";
+import { FragmentTypeEnum } from "./FragmentType";
 import { BaseGift } from "./BaseGift";
 import { Factions } from "../Faction/Factions";
 import { CalculateEffect } from "./formulas/effect";
 import { StaneksGiftEvents } from "./StaneksGiftEvents";
-import { Generic_fromJSON, Generic_toJSON, IReviverValue, constructorsForReviver } from "../utils/JSONReviver";
+import { makeSerializable } from "../utils/GenericReviver";
 import { StanekConstants } from "./data/Constants";
 import { currentNodeMults } from "../BitNode/BitNodeMultipliers";
 import { defaultMultipliers, mergeMultipliers, Multipliers, scaleMultipliers } from "../PersonObjects/Multipliers";
 import { Augmentations } from "../Augmentation/Augmentations";
-import { getKeyList } from "../utils/helpers/getKeyList";
 
 export class StaneksGift extends BaseGift {
   isBonusCharging = false;
@@ -70,7 +69,7 @@ export class StaneksGift extends BaseGift {
     // Filter out undefined with typescript "Type guard". Whatever
     let neighbors = maybeFragments.filter((v: ActiveFragment | undefined): v is ActiveFragment => !!v);
 
-    neighbors = neighbors.filter((fragment) => fragment.fragment().type === FragmentType.Booster);
+    neighbors = neighbors.filter((fragment) => fragment.fragment().type === FragmentTypeEnum.Booster);
     let boost = 1;
 
     neighbors = neighbors.filter((v, i, s) => s.indexOf(v) === i);
@@ -139,63 +138,60 @@ export class StaneksGift extends BaseGift {
 
       const power = this.effect(aFrag);
       switch (fragment.type) {
-        case FragmentType.HackingChance:
-          mults.hacking_chance *= power;
-          break;
-        case FragmentType.HackingSpeed:
+        case FragmentTypeEnum.HackingSpeed:
           mults.hacking_speed *= power;
           break;
-        case FragmentType.HackingMoney:
+        case FragmentTypeEnum.HackingMoney:
           mults.hacking_money *= power;
           break;
-        case FragmentType.HackingGrow:
+        case FragmentTypeEnum.HackingGrow:
           mults.hacking_grow *= power;
           break;
-        case FragmentType.Hacking:
+        case FragmentTypeEnum.Hacking:
           mults.hacking *= power;
           mults.hacking_exp *= power;
           break;
-        case FragmentType.Strength:
+        case FragmentTypeEnum.Strength:
           mults.strength *= power;
           mults.strength_exp *= power;
           break;
-        case FragmentType.Defense:
+        case FragmentTypeEnum.Defense:
           mults.defense *= power;
           mults.defense_exp *= power;
           break;
-        case FragmentType.Dexterity:
+        case FragmentTypeEnum.Dexterity:
           mults.dexterity *= power;
           mults.dexterity_exp *= power;
           break;
-        case FragmentType.Agility:
+        case FragmentTypeEnum.Agility:
           mults.agility *= power;
           mults.agility_exp *= power;
           break;
-        case FragmentType.Charisma:
+        case FragmentTypeEnum.Charisma:
           mults.charisma *= power;
           mults.charisma_exp *= power;
           break;
-        case FragmentType.HacknetMoney:
+        case FragmentTypeEnum.HacknetMoney:
           mults.hacknet_node_money *= power;
           break;
-        case FragmentType.HacknetCost:
+        case FragmentTypeEnum.HacknetCost:
           mults.hacknet_node_purchase_cost /= power;
           mults.hacknet_node_ram_cost /= power;
           mults.hacknet_node_core_cost /= power;
           mults.hacknet_node_level_cost /= power;
           break;
-        case FragmentType.Rep:
+        case FragmentTypeEnum.Rep:
           mults.company_rep *= power;
           mults.faction_rep *= power;
           break;
-        case FragmentType.WorkMoney:
+        case FragmentTypeEnum.WorkMoney:
           mults.work_money *= power;
           break;
-        case FragmentType.Crime:
+        case FragmentTypeEnum.Crime:
           mults.crime_success *= power;
           mults.crime_money *= power;
           break;
-        case FragmentType.Bladeburner:
+        case FragmentTypeEnum.Bladeburner:
           mults.bladeburner_max_stamina *= power;
           mults.bladeburner_stamina_gain *= power;
           mults.bladeburner_analysis *= power;
@@ -238,17 +234,5 @@ export class StaneksGift extends BaseGift {
     this.storedCycles = 0;
   }
 
-  static includedProperties = getKeyList(StaneksGift, { removedKeys: ["justCharged"] });
-
-  /** Serialize Stanek's Gift to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("StaneksGift", this, StaneksGift.includedProperties);
-  }
-
-  /** Initializes Stanek's Gift from a JSON save state */
-  static fromJSON(value: IReviverValue): StaneksGift {
-    return Generic_fromJSON(StaneksGift, value.data, StaneksGift.includedProperties);
-  }
+  static includedKeys = makeSerializable("StaneksGift", StaneksGift, { removedKeys: ["justCharged"] });
 }
-
-constructorsForReviver.StaneksGift = StaneksGift;

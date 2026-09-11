@@ -20,4 +20,32 @@ export enum LiteratureName {
   TheNewGod = "the-new-god.lit",
   NewTriads = "new-triads.lit",
   TheSecretWar = "the-secret-war.lit",
+  ABriefHistoryOfTranshumanism = "a-brief-history-of-transhumanism.lit",
+  DarknetHandbook = "darknet-handbook.lit",
+  CacheHint1 = "cache-note-1.lit",
+  CacheHint2 = "cache-note-2.lit",
+  ServerOfflineHint = "server-offline-problem.lit",
+  DarkWebRebootHint = "darkweb-rebooted-again.lit",
+  PasswordServerHint = "partial-password-jutsu.lit",
+  TimingServerHint = "timing-attack.lit",
+  BinaryServerHint = "raw-data.lit",
+  DogNameHint = "dog-name-ideas.lit",
+  FactoryDefaultHint = "factory-default.lit",
+  StasisLinkHint = "stasis-link.lit",
+  LabHint = "secrets-in-the-depths.lit",
 }
+
+export const DiscoverableScriptName = {
+  GuessingGame: "guessing_game.wip.js",
+  CloudServerUpgrades: "upgrade_cloud_server.wip.ts",
+  PortSender: "port_sender.wip.js",
+  PortReceiver: "port_receiver.wip.js",
+  ServerFinder: "server_finder.wip.js",
+  CustomLogScript: "escaping_your_chains.wip.jsx",
+  CustomContentScript: "build_new_worlds.wip.jsx",
+  HackController: "hack_controller.wip.js",
+  HackChildScript: "hack.wip.js",
+  InfiniteLoop: "infinite_loop.wip.js",
+} as const;
+
+export type DiscoverableScriptNameType = (typeof DiscoverableScriptName)[keyof typeof DiscoverableScriptName];

@@ -2,16 +2,16 @@ import type { Augmentation } from "../Augmentation/Augmentation";
 import type { Faction } from "./Faction";
 
 import { Augmentations } from "../Augmentation/Augmentations";
-import { AugmentationName, FactionDiscovery } from "@enums";
+import { AugmentationName, FactionDiscovery, FactionName } from "@enums";
 import { currentNodeMults } from "../BitNode/BitNodeMultipliers";
 
 import { Player } from "@player";
 import { Factions } from "./Factions";
 import { Settings } from "../Settings/Settings";
 import {
-  getHackingWorkRepGain,
-  getFactionSecurityWorkRepGain,
   getFactionFieldWorkRepGain,
+  getFactionSecurityWorkRepGain,
+  getHackingWorkRepGain,
 } from "../PersonObjects/formulas/reputation";
 
 import { dialogBoxCreate } from "../ui/React/DialogBox";
@@ -20,7 +20,7 @@ import { SFC32RNG } from "../Casino/RNG";
 import { isFactionWork } from "../Work/FactionWork";
 import { getAugCost } from "../Augmentation/AugmentationHelpers";
 import { getRecordKeys } from "../Types/Record";
-import type { Result } from "../types";
+import type { Result } from "@nsdefs";
 
 export function inviteToFaction(faction: Faction): void {
   if (faction.alreadyInvited || faction.isMember) return;
@@ -41,16 +41,14 @@ export function joinFaction(faction: Faction): void {
   // Add this faction to player's faction list, keeping it in standard order
   Player.factions = getRecordKeys(Factions).filter((facName) => Factions[facName].isMember);
 
-  // Ban player from this faction's enemies
+  // Ban player from joining this faction's enemies
   for (const enemy of faction.getInfo().enemies) {
     if (Factions[enemy]) Factions[enemy].isBanned = true;
-    Player.factionRumors.delete(enemy);
   }
-  // Remove invalid invites and rumors
+  // Remove invalid invites
   Player.factionInvitations = Player.factionInvitations.filter((factionName) => {
     return !Factions[factionName].isMember && !Factions[factionName].isBanned;
   });
-  Player.factionRumors.delete(faction.name);
 }
 
 //Returns a boolean indicating whether the player has the prerequisites for the
@@ -201,6 +199,11 @@ export const getFactionAugmentationsFiltered = (faction: Faction): AugmentationN
     augs = augs.filter(uniqueFilter);
 
     return augs.map((a) => a.name);
+  }
+
+  // Remove TRP from daedalus in BN15
+  if (Player.bitNodeN === 15 && faction.name == FactionName.Daedalus) {
+    return faction.augmentations.filter((aug) => aug !== AugmentationName.TheRedPill);
   }
 
   return faction.augmentations.slice();

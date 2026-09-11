@@ -3,10 +3,10 @@ import { AugmentationName, FactionName } from "@enums";
 
 import { canAcceptStaneksGift, staneksGift } from "../CotMG/Helper";
 import { Fragments, FragmentById } from "../CotMG/Fragment";
-import { FragmentType } from "../CotMG/FragmentType";
+import { FragmentTypeEnum } from "../CotMG/FragmentType";
 
-import { Stanek as IStanek } from "@nsdefs";
-import { NetscriptContext, InternalAPI } from "../Netscript/APIWrapper";
+import type { Stanek as IStanek } from "@nsdefs";
+import type { NetscriptContext, InternalAPI } from "../Netscript/APIWrapper";
 import { applyAugmentation } from "../Augmentation/AugmentationHelpers";
 import { joinFaction } from "../Faction/FactionHelpers";
 import { Factions } from "../Faction/Factions";
@@ -21,15 +21,15 @@ export function NetscriptStanek(): InternalAPI<IStanek> {
   }
 
   return {
-    giftWidth: (ctx) => () => {
+    giftWidth: (ctx) => {
       checkStanekAPIAccess(ctx);
       return staneksGift.width();
     },
-    giftHeight: (ctx) => () => {
+    giftHeight: (ctx) => {
       checkStanekAPIAccess(ctx);
       return staneksGift.height();
     },
-    chargeFragment: (ctx) => (_rootX, _rootY) => {
+    chargeFragment: (ctx, _rootX, _rootY) => {
       //Get the fragment object using the given coordinates
       const rootX = helpers.number(ctx, "rootX", _rootX);
       const rootY = helpers.number(ctx, "rootY", _rootY);
@@ -37,14 +37,14 @@ export function NetscriptStanek(): InternalAPI<IStanek> {
       const fragment = staneksGift.findFragment(rootX, rootY);
       //Check whether the selected fragment can ge charged
       if (!fragment) throw helpers.errorMessage(ctx, `No fragment with root (${rootX}, ${rootY}).`);
-      if (fragment.fragment().type == FragmentType.Booster) {
+      if (fragment.fragment().type == FragmentTypeEnum.Booster) {
         throw helpers.errorMessage(
           ctx,
           `The fragment with root (${rootX}, ${rootY}) is a Booster Fragment and thus cannot be charged.`,
         );
       }
       //Charge the fragment
-      const cores = helpers.getServer(ctx, ctx.workerScript.hostname).cpuCores;
+      const cores = ctx.workerScript.getServer().cpuCores;
       const coreBonus = getCoreBonus(cores);
       const inBonus = staneksGift.inBonus();
       const time = inBonus ? 200 : 1000;
@@ -55,24 +55,28 @@ export function NetscriptStanek(): InternalAPI<IStanek> {
         return Promise.resolve();
       });
     },
-    fragmentDefinitions: (ctx) => () => {
+    fragmentDefinitions: (ctx) => {
       checkStanekAPIAccess(ctx);
       helpers.log(ctx, () => `Returned ${Fragments.length} fragments`);
       return Fragments.map((f) => f.copy());
     },
-    activeFragments: (ctx) => () => {
+    activeFragments: (ctx) => {
       checkStanekAPIAccess(ctx);
       helpers.log(ctx, () => `Returned ${staneksGift.fragments.length} fragments`);
-      return staneksGift.fragments.map((af) => {
-        return { ...af.copy(), ...af.fragment().copy() };
-      });
+      return staneksGift.fragments.map((activeFragment) => {
+        return {
+          ...activeFragment.copy(),
+          ...activeFragment.fragment().copy(),
+          chargedEffect: staneksGift.effect(activeFragment),
+        };
+      }) satisfies ReturnType<IStanek["activeFragments"]>;
     },
-    clearGift: (ctx) => () => {
+    clearGift: (ctx) => {
       checkStanekAPIAccess(ctx);
       helpers.log(ctx, () => `Cleared Stanek's Gift.`);
       staneksGift.clear();
     },
-    canPlaceFragment: (ctx) => (_rootX, _rootY, _rotation, _fragmentId) => {
+    canPlaceFragment: (ctx, _rootX, _rootY, _rotation, _fragmentId) => {
       const rootX = helpers.number(ctx, "rootX", _rootX);
       const rootY = helpers.number(ctx, "rootY", _rootY);
       const rotation = helpers.number(ctx, "rotation", _rotation);
@@ -83,7 +87,7 @@ export function NetscriptStanek(): InternalAPI<IStanek> {
       const can = staneksGift.canPlace(rootX, rootY, rotation, fragment);
       return can;
     },
-    placeFragment: (ctx) => (_rootX, _rootY, _rotation, _fragmentId) => {
+    placeFragment: (ctx, _rootX, _rootY, _rotation, _fragmentId) => {
       const rootX = helpers.number(ctx, "rootX", _rootX);
       const rootY = helpers.number(ctx, "rootY", _rootY);
       const rotation = helpers.number(ctx, "rotation", _rotation);
@@ -93,26 +97,37 @@ export function NetscriptStanek(): InternalAPI<IStanek> {
       if (!fragment) throw helpers.errorMessage(ctx, `Invalid fragment id: ${fragmentId}`);
       return staneksGift.place(rootX, rootY, rotation, fragment);
     },
-    getFragment: (ctx) => (_rootX, _rootY) => {
+    getFragment: (ctx, _rootX, _rootY) => {
       const rootX = helpers.number(ctx, "rootX", _rootX);
       const rootY = helpers.number(ctx, "rootY", _rootY);
       checkStanekAPIAccess(ctx);
-      const fragment = staneksGift.findFragment(rootX, rootY);
-      if (fragment !== undefined) return fragment.copy();
+      const activeFragment = staneksGift.findFragment(rootX, rootY);
+      if (activeFragment !== undefined) {
+        return {
+          ...activeFragment.copy(),
+          ...activeFragment.fragment().copy(),
+          chargedEffect: staneksGift.effect(activeFragment),
+        } satisfies ReturnType<IStanek["getFragment"]>;
+      }
       return undefined;
     },
-    removeFragment: (ctx) => (_rootX, _rootY) => {
+    removeFragment: (ctx, _rootX, _rootY) => {
       const rootX = helpers.number(ctx, "rootX", _rootX);
       const rootY = helpers.number(ctx, "rootY", _rootY);
       checkStanekAPIAccess(ctx);
       return staneksGift.delete(rootX, rootY);
     },
-    acceptGift: (ctx) => () => {
+    acceptGift: (ctx) => {
       const cotmgFaction = Factions[FactionName.ChurchOfTheMachineGod];
+      // Return early if the player is already a member
+      if (cotmgFaction.isMember && Player.hasAugmentation(AugmentationName.StaneksGift1, true)) {
+        helpers.log(ctx, () => `You are already a member of ${FactionName.ChurchOfTheMachineGod}.`);
+        return true;
+      }
       // Check if the player is eligible to join the church
       const checkResult = canAcceptStaneksGift();
       if (checkResult.success) {
-        // Join the CotMG factionn
+        // Join the CotMG faction
         joinFaction(cotmgFaction);
         // Install the first Stanek aug
         applyAugmentation({ name: AugmentationName.StaneksGift1, level: 1 });

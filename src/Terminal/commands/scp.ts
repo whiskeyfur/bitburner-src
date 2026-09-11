@@ -7,7 +7,7 @@ import { isMember } from "../../utils/EnumHelper";
 import { LiteratureName } from "@enums";
 import { ContentFile } from "../../Paths/ContentFile";
 
-export function scp(args: (string | number | boolean)[], server: BaseServer): void {
+export function scp(args: (string | number | boolean)[], server: BaseServer): undefined {
   if (args.length < 2) {
     return Terminal.error("Incorrect usage of scp command. Usage: scp [source filename] [destination hostname]");
   }
@@ -36,7 +36,7 @@ export function scp(args: (string | number | boolean)[], server: BaseServer): vo
     // Error for invalid filetype
     if (!hasScriptExtension(path) && !hasTextExtension(path)) {
       return Terminal.error(
-        `scp failed: ${path} has invalid extension. scp only works for scripts (.js, .jsx, .ts, .tsx), text files (.txt, .json), and literature files (.lit)`,
+        `scp failed: ${path} has invalid extension. scp only works for scripts (.js, .jsx, .ts, .tsx), text files (.txt, .json, .css), and literature files (.lit)`,
       );
     }
     const sourceContentFile = server.getContentFile(path);

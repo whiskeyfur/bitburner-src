@@ -8,13 +8,13 @@ The "best" order can vary between players, depending on what you like to do any 
 
 ## tl;dr
 
-BN1, BN2 and BN5 are great starters.
-BN4 and BN6 are also good to do early if their mechanics appeal to you.
-BN10 has interesting mechanics if you can generate lots of money.
-BN9, BN13 and BN14 are tough but have interesting new mechanics
-BN3 has a very tough mechanic to automate with unparalleled power.
-BN7, BN8 and BN11 are tough with little to benefit newer players.
-BN12 is easy to start but quickly ramps up in difficulty.
+- BN1, BN2, and BN5 are great starters.
+- BN4 and BN6/BN7 are also good to do early if their mechanics appeal to you.
+- BN10 has interesting mechanics if you can generate lots of money.
+- BN9, BN13, BN14, and BN15 are tough but have interesting new mechanics.
+- BN3 has a very tough mechanic to automate but gives unparalleled power.
+- BN8 and BN11 are tough but offer little benefit to new players.
+- BN12 is easy to start but quickly ramps up in difficulty.
 
 ## Good early BitNodes
 
@@ -32,17 +32,20 @@ Because of all the benefits this [BitNode](bitnodes.md) provides, it's definitel
 
 ## Depends on your priorities
 
-BN4 gives access to the [Singularity API](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.singularity.md).
+BN4 gives access to the [Singularity API](../../../../../markdown/bitburner.singularity.md).
 This mechanic allows the automation of many actions directly affecting the player.
 If this appeals to you then you should prioritize this BitNode.
-Due to the [RAM](../basic/ram.md) cost, it's strongly recommended to complete BN4.3 before using the [Singularity API](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.singularity.md) in other [BitNodes](bitnodes.md).
+Due to the [RAM](../basic/ram.md) cost, it's strongly recommended to complete BN4.3 before using the Singularity API in other [BitNodes](bitnodes.md).
 
-BN6 introduces the [Bladeburner](bladeburners.md) mechanic and its corresponding [Bladeburner API](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.bladeburner.md).
+BN6 introduces the [Bladeburner](bladeburners.md) mechanic and its corresponding [Bladeburner API](../../../../../markdown/bitburner.bladeburner.md).
 Bladeburner is an alternative method to beat BitNodes which doesn't rely on money or hacking skill.
 [Sleeves](sleeves.md) help complete BN6 more quickly since they can share some Bladeburner tasks with the player but aren't a requirement.
 
+BN7 also unlocks Bladeburner like BN6, but it's a bit harder than BN6 while giving more Bladeburner-specific rewards,
+such as an augmentation that lets you perform Bladeburner and non-Bladeburner actions at the same time.
+
 BN10 unlocks two new mechanics: [Sleeves](sleeves.md) and [Grafting](grafting.md).
-[Sleeves](sleeves.md) act as additional players and can perform tasks like studying, training, crime and working for factions independently of the player.
+[Sleeves](sleeves.md) act as additional players and can perform tasks like studying, training, committing crime and working for factions independently of the player.
 [Grafting](grafting.md) installs augmentations without a soft reset.
 Both are very useful to have but require large amounts of money to use to their fullest extent.
 Each [Source-File](sourcefiles.md) grants an additional sleeve and up to five additional sleeves may be purchased from a faction only in this BitNode.
@@ -56,19 +59,19 @@ Overall, this [BitNode](bitnodes.md) is considered an advanced one even if there
 
 BN9 introduces the [Hacknet Server](hacknetservers.md) mechanic to replace the [Hacknet Nodes](../basic/hacknet_nodes.md) mechanic.
 [Hacknet Servers](hacknetservers.md) generate hashes instead of money directly and these hashes can be traded for various benefits.
-Players who find [RAM](../basic/ram.md) tight at the beginning of a [BitNode](bitnodes.md) will find BN9.2's bonus to start with 128GiB in their home machine.
+Players who find [RAM](../basic/ram.md) tight at the beginning of a [BitNode](bitnodes.md) will find BN9.2's bonus to start with 128GiB in their home machine useful.
 
 BN13 introduces [Stanek's Gift](stanek.md), a powerful augmentation that can provide bonuses to skills, [hacknet](../basic/hacknet_nodes.md) production and costs, working and [crime](../basic/crimes.md) gains, and [hacking](../basic/hacking.md) power and speed.
 These bonuses are versatile but not enough to offset the challenge of the BitNode itself.
 
 BN14 is a relatively new BitNode focused on [IPvGO](../programming/go_algorithms.md).
-Automating the mechanic is challenging but it provides a wide variety of bonuses.
+Automating the mechanic is challenging, but it provides a wide variety of bonuses.
+
+BN15 expands on the darknet mechanic unlocked via the DarkscapeNavigator.exe program.
+It encourages solving a number of practical problems (e.g. passing data around between scripts, handling servers disappearing) as well as solving many small programming puzzles to get servers' passwords. The deeper levels of the darknet have significantly more complex puzzles.
+It provides a variety of useful bonuses.
 
 ## Save these for later
-
-BN7 used to give access to the [Bladeburner API](https://github.com/bitburner-official/bitburner-src/blob/stable/markdown/bitburner.bladeburner.md), but now it doesn't.
-Because of that change this [BitNode](bitnodes.md) is relatively low priority and should definitely happen after BN6.
-The benefit for completing BN7.3 is an aug that lets the player perform [Bladeburner](bladeburners.md) and non-Bladeburner actions at the same time.
 
 BN8 focuses on the stock market to the point that there's no other way to make money.
 Completing at least BN10.1 is highly recommended in order to have [Grafting](grafting.md).

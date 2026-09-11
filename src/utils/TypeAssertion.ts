@@ -1,4 +1,5 @@
-import type { Unknownify } from "../types";
+import type { SaveData, Unknownify } from "../types";
+import type { Result } from "@nsdefs";
 
 // This function is empty because Unknownify<T> is a typesafe assertion on any object with no runtime checks needed.
 // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -35,7 +36,7 @@ export function assert<T>(
 }
 
 /** Returns the friendlyType of v. arrays are "array" and null is "null". */
-function getFriendlyType(v: unknown): string {
+export function getFriendlyType(v: unknown): string {
   return v === null ? "null" : Array.isArray(v) ? "array" : typeof v;
 }
 
@@ -87,5 +88,67 @@ export function assertNumberArray(unknownData: unknown, assertFinite = false): a
         throw new Error(`${value} is not a number.`);
       }
     }
+  }
+}
+
+export function validateSaveData(unknownData: unknown): Result {
+  if (unknownData == null) {
+    return { success: false, message: `Save data is ${unknownData}` };
+  }
+
+  if (unknownData === "") {
+    return { success: false, message: "Save data is an empty string" };
+  }
+  if (typeof unknownData === "string") {
+    return { success: true };
+  }
+
+  if (!(unknownData instanceof Uint8Array)) {
+    console.error(unknownData);
+    return { success: false, message: "Save data is not an instance of Uint8Array" };
+  }
+  if (unknownData.length === 0) {
+    return { success: false, message: "Save data is an empty Uint8Array" };
+  }
+  if (!(unknownData.buffer instanceof ArrayBuffer)) {
+    console.error(unknownData.buffer);
+    return { success: false, message: "Save data is a Uint8Array, but its buffer is not an ArrayBuffer" };
+  }
+
+  return { success: true };
+}
+
+export function isSaveData(unknownData: unknown): unknownData is SaveData {
+  return validateSaveData(unknownData).success;
+}
+
+export function assertSaveData(unknownData: unknown): asserts unknownData is SaveData {
+  if (typeof unknownData !== "string" && !(unknownData instanceof Uint8Array)) {
+    console.error(unknownData);
+    throw new Error(`Invalid save data. Its type is ${getFriendlyType(unknownData)}.`);
+  }
+  if (unknownData instanceof Uint8Array && !(unknownData.buffer instanceof ArrayBuffer)) {
+    console.error(unknownData);
+    throw new Error("Invalid save data. It's Uint8Array, but its buffer is not ArrayBuffer.");
+  }
+}
+
+/**
+ * This function only narrows down the type to "number" at compile time, but it guarantees the value is a finite number
+ * at runtime.
+ */
+export function assertFiniteNumber(v: unknown): asserts v is number {
+  if (!Number.isFinite(v)) {
+    console.error("The value is not a finite number. Value:", v);
+    const type = getFriendlyType(v);
+    throw new TypeAssertionError(`The value is not a finite number. Its type is ${type}.`, type);
+  }
+}
+
+export function assertNonNullish<T>(v: unknown): asserts v is NonNullable<T> {
+  if (v === null || v === undefined) {
+    console.error("The value is nullish. Value:", v);
+    const type = getFriendlyType(v);
+    throw new TypeAssertionError(`The value is nullish. Its type is ${type}.`, type);
   }
 }

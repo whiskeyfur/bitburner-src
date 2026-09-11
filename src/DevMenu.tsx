@@ -3,7 +3,6 @@ import React, { useEffect, useRef } from "react";
 import Typography from "@mui/material/Typography";
 
 import { Player } from "@player";
-import { AugmentationName } from "@enums";
 
 import { GeneralDev } from "./DevMenu/ui/GeneralDev";
 import { TimeSkipDev } from "./DevMenu/ui/TimeSkipDev";
@@ -27,6 +26,7 @@ import { EntropyDev } from "./DevMenu/ui/EntropyDev";
 
 import { Exploit } from "./Exploits/Exploit";
 import { useRerender } from "./ui/React/hooks";
+import { DarknetDev } from "./DevMenu/ui/DarknetDev";
 import { AutoExpandContext, getAutoExpandData, setAutoExpandData } from "./ui/AutoExpand/AutoExpandContext";
 
 export function DevMenuRoot(): React.ReactElement {
@@ -57,22 +57,23 @@ export function DevMenuRoot(): React.ReactElement {
       <ServersDev />
       <CompaniesDev />
 
-      {Player.bladeburner && <BladeburnerDev bladeburner={Player.bladeburner} />}
+      <BladeburnerDev />
 
-      {Player.gang && <GangDev />}
+      <GangDev />
 
-      {Player.corporation && <CorporationDev />}
+      <CorporationDev />
 
       <CodingContractsDev />
 
-      {Player.hasWseAccount && <StockMarketDev />}
+      <StockMarketDev />
 
-      {Player.sleeves.length > 0 && <SleevesDev />}
-      {Player.augmentations.some((aug) => aug.name === AugmentationName.StaneksGift1) && <StanekDev />}
+      <SleevesDev />
+      <StanekDev />
 
       <TimeSkipDev />
       <AchievementsDev />
       <EntropyDev />
+      <DarknetDev />
     </AutoExpandContext.Provider>
   );
 }

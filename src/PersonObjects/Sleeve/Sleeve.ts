@@ -7,7 +7,7 @@
  * Sleeves are unlocked in BitNode-10.
  */
 
-import type { SleevePerson } from "@nsdefs";
+import type { Result, SleevePerson } from "@nsdefs";
 import type { Augmentation } from "../../Augmentation/Augmentation";
 import type { SleeveWork } from "./Work/Work";
 
@@ -33,7 +33,8 @@ import {
 
 import { Factions } from "../../Faction/Factions";
 
-import { Generic_fromJSON, Generic_toJSON, IReviverValue, constructorsForReviver } from "../../utils/JSONReviver";
+import { type IReviverValue, Generic_fromJSON } from "../../utils/JSONReviver";
+import { makeSerializable } from "../../utils/GenericReviver";
 import { SleeveClassWork } from "./Work/SleeveClassWork";
 import { SleeveSynchroWork } from "./Work/SleeveSynchroWork";
 import { SleeveRecoveryWork } from "./Work/SleeveRecoveryWork";
@@ -50,6 +51,7 @@ import { getFactionAugmentationsFiltered } from "../../Faction/FactionHelpers";
 import { Augmentations } from "../../Augmentation/Augmentations";
 import { getAugCost } from "../../Augmentation/AugmentationHelpers";
 import type { MoneySource } from "../../utils/MoneySourceTracker";
+import { formatMoney, formatSleeveShock } from "../../ui/formatNumber";
 
 export class Sleeve extends Person implements SleevePerson {
   currentWork: SleeveWork | null = null;
@@ -195,13 +197,8 @@ export class Sleeve extends Person implements SleevePerson {
 
   /** Returns the cost of upgrading this sleeve's memory by a certain amount */
   getMemoryUpgradeCost(n: number): number {
-    const amt = Math.round(n);
-    if (amt < 0) {
-      return 0;
-    }
-
-    if (this.memory + amt > 100) {
-      return this.getMemoryUpgradeCost(100 - this.memory);
+    if (!Number.isInteger(n) || n < 0 || this.memory + n > 100) {
+      return Infinity;
     }
 
     const mult = 1.02;
@@ -255,6 +252,8 @@ export class Sleeve extends Person implements SleevePerson {
     this.shock = 100;
     this.storedCycles = 0;
     this.sync = Math.max(this.memory, 1);
+
+    this.overrideIntelligence();
   }
 
   /**
@@ -343,20 +342,62 @@ export class Sleeve extends Person implements SleevePerson {
     return true;
   }
 
-  tryBuyAugmentation(aug: Augmentation): boolean {
+  /**
+   * This function is only used in UI code for checking whether the "Manage Augmentations" button can be enabled. If you
+   * want to check if the player can purchase a specific augmentation, you need to call canPurchaseAugmentation.
+   */
+  checkPreconditionsOfPurchasingAugmentations(): Result {
+    if (Player.bitNodeOptions.disableSleeveExpAndAugmentation) {
+      return {
+        success: false,
+        message: `The "Disable Sleeves' experience and augmentation" option was enabled. You cannot purchase augmentations for your sleeves.`,
+      };
+    }
+
+    if (this.shock > 0) {
+      return {
+        success: false,
+        message: `You must reduce the sleeve shock to 0. The current shock is ${formatSleeveShock(this.shock)}.`,
+      };
+    }
+
+    return { success: true };
+  }
+
+  canPurchaseAugmentation(aug: Augmentation): Result {
+    const checkingPreconditions = this.checkPreconditionsOfPurchasingAugmentations();
+    if (!checkingPreconditions.success) {
+      return checkingPreconditions;
+    }
+
     if (!Player.canAfford(aug.baseCost)) {
-      return false;
+      return {
+        success: false,
+        message: `You must have at least ${formatMoney(aug.baseCost)}.`,
+      };
     }
 
     // Verify that this sleeve does not already have that augmentation.
-    if (this.hasAugmentation(aug.name)) return false;
+    if (this.hasAugmentation(aug.name)) {
+      return { success: false, message: `This sleeve already has "${aug.name}" augmentation.` };
+    }
 
     // Verify that the augmentation is available for purchase.
-    if (!this.findPurchasableAugs().includes(aug)) return false;
+    if (!this.findPurchasableAugs().includes(aug)) {
+      return { success: false, message: `"${aug.name}" is not in the list of purchasable augmentations.` };
+    }
 
+    return { success: true };
+  }
+
+  purchaseAugmentation(aug: Augmentation): Result {
+    const validationResult = this.canPurchaseAugmentation(aug);
+    if (!validationResult.success) {
+      return validationResult;
+    }
     Player.loseMoney(aug.baseCost, "sleeves");
     this.installAugmentation(aug);
-    return true;
+    return { success: true };
   }
 
   upgradeMemory(n: number): void {
@@ -499,6 +540,14 @@ export class Sleeve extends Person implements SleevePerson {
     return false;
   }
 
+  travel(cityName: CityName): boolean {
+    if (!super.travel(cityName)) {
+      return false;
+    }
+    this.stopWork();
+    return true;
+  }
+
   travelCostMoneySource(): MoneySource {
     return "sleeves";
   }
@@ -524,36 +573,13 @@ export class Sleeve extends Person implements SleevePerson {
     }
   }
 
-  static recalculateNumOwned() {
-    /**
-     * Don't change sourceFileLvl to activeSourceFileLvl. The number of sleeves is a permanent effect. It's too
-     * troublesome for the player if they lose Sleeves and have to go BN10 to buy them again when they override the
-     * level of SF 10.
-     */
-    const numSleeves =
-      Math.min(3, Player.sourceFileLvl(10) + (Player.bitNodeN === 10 ? 1 : 0)) + Player.sleevesFromCovenant;
-    while (Player.sleeves.length > numSleeves) {
-      const destroyedSleeve = Player.sleeves.pop();
-      // This should not happen, but avoid an infinite loop in case sleevesFromCovenent or sf10 level are somehow negative
-      if (!destroyedSleeve) return;
-      // Stop work, to prevent destroyed sleeves from continuing their tasks in the void
-      destroyedSleeve.stopWork();
-    }
-    while (Player.sleeves.length < numSleeves) Player.sleeves.push(new Sleeve());
-  }
-
   whoAmI(): string {
     return "Sleeve";
   }
 
-  /** Serialize the current object to a JSON save state. */
-  toJSON(): IReviverValue {
-    return Generic_toJSON("Sleeve", this);
-  }
-
-  /** Initializes a Sleeve object from a JSON save state. */
-  static fromJSON(value: IReviverValue): Sleeve {
-    const sleeve = Generic_fromJSON(Sleeve, value.data);
+  /** Custom load handling */
+  static jsonReviver(value: IReviverValue): Sleeve {
+    const sleeve = Generic_fromJSON(Sleeve, value.data, Sleeve.includedKeys);
     if (!sleeve.hp?.current || !sleeve.hp?.max) sleeve.hp = { current: 10, max: 10 };
     // Remove any invalid aug names on game load
     sleeve.augmentations = sleeve.augmentations.filter((ownedAug) =>
@@ -565,6 +591,6 @@ export class Sleeve extends Person implements SleevePerson {
 
     return sleeve;
   }
-}
 
-constructorsForReviver.Sleeve = Sleeve;
+  static includedKeys = makeSerializable("Sleeve", Sleeve);
+}

@@ -3,7 +3,7 @@ import { BaseServer } from "../../Server/BaseServer";
 import { hasScriptExtension } from "../../Paths/ScriptFilePath";
 import { hasTextExtension } from "../../Paths/TextFilePath";
 
-export function mv(args: (string | number | boolean)[], server: BaseServer): void {
+export function mv(args: (string | number | boolean)[], server: BaseServer): undefined {
   if (args.length !== 2) {
     Terminal.error(`Incorrect number of arguments. Usage: mv [src] [dest]`);
     return;
@@ -19,7 +19,7 @@ export function mv(args: (string | number | boolean)[], server: BaseServer): voi
     (!hasScriptExtension(sourcePath) && !hasTextExtension(sourcePath)) ||
     (!hasScriptExtension(destinationPath) && !hasTextExtension(destinationPath))
   ) {
-    return Terminal.error(`'mv' can only be used on scripts (.js, .jsx, .ts, .tsx) and text files (.txt, .json)`);
+    return Terminal.error(`'mv' can only be used on scripts (.js, .jsx, .ts, .tsx) and text files (.txt, .json, .css)`);
   }
 
   // Allow content to be moved between scripts and textfiles, no need to limit this.

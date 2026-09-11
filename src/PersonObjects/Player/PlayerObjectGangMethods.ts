@@ -7,7 +7,7 @@ import { Gang } from "../../Gang/Gang";
 import { GangConstants } from "../../Gang/data/Constants";
 import { isFactionWork } from "../../Work/FactionWork";
 import { canAccessBitNodeFeature } from "../../BitNode/BitNodeUtils";
-import { Result } from "../../types";
+import type { Result } from "@nsdefs";
 
 export function canAccessGang(this: PlayerObject): Result {
   if (this.bitNodeOptions.disableGang) {
@@ -54,8 +54,9 @@ export function hasGangWith(this: PlayerObject, facName: FactionName): boolean {
 }
 
 export function startGang(this: PlayerObject, factionName: FactionName, hacking: boolean): void {
-  // isFactionWork handles null internally, finishWork might need to be run with true
-  if (isFactionWork(this.currentWork) && this.currentWork.factionName === factionName) this.finishWork(false);
+  if (isFactionWork(this.currentWork) && this.currentWork.factionName === factionName) {
+    this.finishWork(true);
+  }
 
   this.gang = new Gang(factionName, hacking);
 
